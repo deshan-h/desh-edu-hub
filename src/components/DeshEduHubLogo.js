@@ -4,14 +4,6 @@ import Image from "next/image";
 
 /**
  * Reusable React Component for "DESH EduHub" 3D Metallic Badge Logo.
- *
- * Requirements fulfilled:
- * 1. Typography: Modern bold sans-serif font (font-extrabold / font-black, tracking-tight).
- * 2. "DESH": Deep metallic blue gradient effect (bg-gradient-to-r, bg-clip-text, text-transparent).
- * 3. "EduHub": Sleek metallic silver/chrome gradient effect.
- * 4. 3D Effect: Subtle drop-shadows & bevel reflections matching a physical 3D metallic badge.
- * 5. Layout: Perfectly aligned horizontally (inline-flex, items-center) for seamless placement in Navbars.
- * 6. Responsive: Mobile and desktop scaling with crisp clarity.
  */
 export default function DeshEduHubLogo({
   showIcon = false,
@@ -28,7 +20,7 @@ export default function DeshEduHubLogo({
 
   return (
     <div
-      className={`inline-flex items-center gap-2 sm:gap-2.5 select-none ${className}`}
+      className={`inline-flex items-center gap-1.5 sm:gap-2 select-none whitespace-nowrap shrink-0 pointer-events-none ${className}`}
     >
       {/* Optional 3D Metallic Emblem Icon */}
       {showIcon && (
@@ -45,7 +37,7 @@ export default function DeshEduHubLogo({
       )}
 
       {/* 3D Embossed Metallic Text */}
-      <div className="flex items-center leading-none tracking-tight">
+      <div className="flex items-center leading-none tracking-tight pointer-events-auto">
         {/* "DESH" - Deep Metallic Blue Gradient with 3D Emboss */}
         <span
           className={`font-black uppercase tracking-tight bg-gradient-to-r from-[#0c2e59] via-[#1d6fc6] to-[#071930] dark:from-[#60a5fa] dark:via-[#93c5fd] dark:to-[#3b82f6] bg-clip-text text-transparent filter drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_2px_5px_rgba(37,99,235,0.4)] ${currentSize}`}

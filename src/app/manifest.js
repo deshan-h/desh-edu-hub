@@ -1,6 +1,6 @@
 export default function manifest() {
   return {
-    name: "DESH EduHub | Educational Past Papers",
+    name: "DESH EduHub | Educational Resources",
     short_name: "DESH EduHub",
     description: "ශ්‍රී ලංකාවේ සාමාන්‍ය පෙළ, උසස් පෙළ සහ 5 ශ්‍රේණිය පසුගිය ප්‍රශ්න පත්‍ර නොමිලේ Download කරගන්න.",
     start_url: "/",

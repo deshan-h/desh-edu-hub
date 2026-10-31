@@ -122,18 +122,7 @@ export default function PapersGallery({ initialPapers = [] }) {
 
   const triggerDownload = (paper) => {
     if (!paper?.file_url) return;
-    // Use invisible anchor click to bypass popup blockers reliably
-    try {
-      const link = document.createElement("a");
-      link.href = paper.file_url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch {
-      window.open(paper.file_url, "_blank", "noopener,noreferrer");
-    }
+    window.open(paper.file_url, "_blank");
 
     // Increment count optimistically in UI
     if (paper.id) {

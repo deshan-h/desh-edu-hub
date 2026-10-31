@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "DESH EduHub | නොමිලේ පසුගිය විභාග ප්‍රශ්න පත්‍ර",
+  title: "DESH EduHub | Educational Resources",
   description:
     "ශ්‍රී ලංකාවේ සාමාන්‍ය පෙළ (O/L), උසස් පෙළ (A/L) සහ 5 ශ්‍රේණිය ශිෂ්‍යත්ව විභාග පසුගිය ප්‍රශ්න පත්‍ර නොමිලේ Download කරගන්න.",
   manifest: "/manifest.webmanifest",

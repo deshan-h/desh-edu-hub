@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "lucide-react": ["./src/components/icons/lucide.js"],
+      "framer-motion": ["./src/components/motion.js"]
     }
   }
 }
