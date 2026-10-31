@@ -5,6 +5,19 @@ import { supabase } from "@/lib/supabase";
 
 export async function POST(request) {
   try {
+    // 0. Verify Admin Authentication
+    const sessionCookie = request.cookies.get("admin_session")?.value;
+    const sessionSecret = (
+      process.env.ADMIN_SESSION_SECRET || "desh-papers-hub-admin-secret-2026"
+    ).trim();
+
+    if (!sessionCookie || sessionCookie !== sessionSecret) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized: Admin login is required to upload." },
+        { status: 401 }
+      );
+    }
+
     const formData = await request.formData();
 
     const file = formData.get("file");
@@ -12,6 +25,9 @@ export async function POST(request) {
     const category = formData.get("category");
     const subject = formData.get("subject");
     const year = formData.get("year");
+    const hasAnswers =
+      formData.get("has_answers") === "true" ||
+      formData.get("with_answers") === "true";
 
     // 1. Validate required fields
     if (!title || !category || !subject || !year) {
@@ -75,18 +91,40 @@ export async function POST(request) {
     const fileUrl = `${publicBaseUrl}/${uniqueFileName}`;
 
     // 6. Insert new record into Supabase 'papers' table
-    const { data, error: dbError } = await supabase
+    let insertPayload = {
+      title: title.toString().trim(),
+      category: category.toString().trim(),
+      subject: subject.toString().trim(),
+      year: parseInt(year.toString(), 10),
+      file_url: fileUrl,
+      download_count: 0,
+      has_answers: hasAnswers,
+    };
+
+    let { data, error: dbError } = await supabase
       .from("papers")
-      .insert([
-        {
-          title: title.toString().trim(),
-          category: category.toString().trim(),
-          subject: subject.toString().trim(),
-          year: parseInt(year.toString(), 10),
-          file_url: fileUrl,
-        },
-      ])
+      .insert([insertPayload])
       .select();
+
+    // Gracefully handle if 'has_answers' column doesn't exist yet in Supabase
+    if (
+      dbError &&
+      (dbError.message?.includes("has_answers") ||
+        dbError.code === "PGRST204" ||
+        dbError.code === "42703")
+    ) {
+      console.warn("Column has_answers missing in Supabase, retrying without column...");
+      delete insertPayload.has_answers;
+      if (hasAnswers && !insertPayload.title.includes("With Answers")) {
+        insertPayload.title = `${insertPayload.title} (With Answers)`;
+      }
+      const retryResult = await supabase
+        .from("papers")
+        .insert([insertPayload])
+        .select();
+      data = retryResult.data;
+      dbError = retryResult.error;
+    }
 
     if (dbError) {
       console.error("Supabase error:", dbError);

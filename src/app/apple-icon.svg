@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <linearGradient id="appleNavIconGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#4338ca" />
+    </linearGradient>
+    <filter id="appleShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Rounded background matching UI Navbar logo -->
+  <rect x="0" y="0" width="180" height="180" rx="40" fill="url(#appleNavIconGrad)" />
+  
+  <!-- Graduation emblem icon matching Navbar exactly -->
+  <g transform="translate(36, 36) scale(4.5)" filter="url(#appleShadow)">
+    <path
+      d="M22 10v6M2 10l10-5 10 5-10 5z"
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+</svg>
+
