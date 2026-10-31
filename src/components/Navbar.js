@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import ThemeToggle from "./ThemeToggle";
+import DeshEduHubLogo from "./DeshEduHubLogo";
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
@@ -67,55 +69,17 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/65 dark:bg-slate-950/65 backdrop-blur-xl backdrop-saturate-150 border-b border-slate-200/50 dark:border-slate-800/60 shadow-xs shadow-slate-900/[0.03] dark:shadow-black/20 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
-          {/* Left: Brand & Logo */}
-          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
-            <div className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 rounded-xl sm:rounded-2xl blur-xs opacity-75 group-hover:opacity-100 transition duration-300" />
-              <div className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-md">
-                <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-                  <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Stylish Brand Layout: DESH Papers on top, HUB in rounded rectangle below */}
-            <div className="flex flex-col items-start justify-center">
-              <div className="flex items-center gap-1 sm:gap-1.5 leading-none">
-                <span className="text-base sm:text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                  DESH
-                </span>
-                <span className="text-base sm:text-xl font-black tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
-                  Papers
-                </span>
-              </div>
-              <div className="mt-0.5">
-                <span className="inline-flex items-center px-2.5 py-0.5 sm:px-3 sm:py-0.5 rounded-md bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 text-white font-black text-[11px] sm:text-xs tracking-widest uppercase shadow-xs">
-                  HUB
-                </span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Right: User Display + Theme Toggle + Admin Button */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-            {/* User Display Pill */}
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl backdrop-saturate-150 border-b border-slate-200/50 dark:border-slate-800/60 shadow-xs shadow-slate-900/[0.03] dark:shadow-black/20 transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between gap-2">
+          
+          {/* ================= 1. LEFT: User Profile / Free Status ================= */}
+          <div className="flex-1 flex items-center justify-start min-w-0">
             {user ? (
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setMenuOpen(!menuOpen)}
-                  className="h-9 sm:h-10 flex items-center gap-2 px-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-50/90 via-blue-50/50 to-indigo-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 border border-emerald-200/80 dark:border-emerald-800/40 text-xs shadow-xs hover:border-emerald-300 dark:hover:border-emerald-700 transition cursor-pointer shrink-0"
+                  className="h-9 sm:h-10 flex items-center gap-2 px-2.5 sm:px-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-50/90 via-blue-50/50 to-indigo-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 border border-emerald-200/80 dark:border-emerald-800/40 text-xs shadow-xs hover:border-emerald-300 dark:hover:border-emerald-700 transition cursor-pointer shrink-0"
                   title="පරිශීලක තොරතුරු බලන්න"
                 >
                   <div className="relative shrink-0">
@@ -125,55 +89,41 @@ export default function Navbar() {
                     <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 animate-pulse" />
                   </div>
 
-                  {/* Desktop View (md and up) */}
-                  <div className="hidden md:block text-left">
+                  {/* Desktop View (lg and up) */}
+                  <div className="hidden lg:block text-left">
                     <p className="font-bold text-slate-900 dark:text-slate-100 leading-tight text-xs flex items-center gap-1.5">
-                      <span>{user.name} ලෙස සම්බන්ධ වී ඇත</span>
+                      <span>{user.name}</span>
                     </p>
                     <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold leading-tight flex items-center gap-1 mt-0.5">
-                      <span>⚡ 1-Click Download සක්‍රීයයි</span>
-                      <span className="hidden lg:inline text-slate-400 dark:text-slate-500">
-                        • {user.whatsapp_number || user.whatsapp}
-                      </span>
+                      <span>⚡ 1-Click Download</span>
                     </p>
                   </div>
 
-                  {/* Mobile View (Compact name + chevron) */}
-                  <div className="md:hidden flex items-center gap-1 text-left">
-                    <span className="font-bold text-slate-900 dark:text-slate-100 text-xs max-w-[65px] xs:max-w-[85px] truncate">
+                  {/* Tablet/Mobile View (Compact name) */}
+                  <div className="lg:hidden hidden sm:flex items-center gap-1 text-left">
+                    <span className="font-bold text-slate-900 dark:text-slate-100 text-xs max-w-[70px] truncate">
                       {user.name.split(" ")[0]}
                     </span>
-                    <svg
-                      className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                        menuOpen ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
                   </div>
 
-                  {/* Desktop Direct Logout Button */}
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowLogoutModal(true);
-                    }}
-                    className="hidden md:inline-block text-[11px] text-slate-400 hover:text-red-500 dark:hover:text-red-400 font-medium transition ml-1 p-1 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg cursor-pointer"
-                    title="ගිණුම ඉවත් කරන්න"
+                  <svg
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                      menuOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    ඉවත් වන්න
-                  </span>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </button>
 
-                {/* Mobile Profile Dropdown Card */}
+                {/* Profile Dropdown Menu Card */}
                 {menuOpen && (
                   <>
                     {/* Backdrop */}
@@ -183,7 +133,7 @@ export default function Navbar() {
                     />
 
                     {/* Dropdown Menu */}
-                    <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 z-50 p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100">
+                    <div className="absolute left-0 top-full mt-2 w-72 sm:w-80 z-50 p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100">
                       <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white font-black flex items-center justify-center text-sm shadow-xs uppercase shrink-0">
                           {user.name ? user.name.charAt(0) : "U"}
@@ -204,7 +154,7 @@ export default function Navbar() {
                           <span>⚡ 1-Click Download සක්‍රීයයි</span>
                         </div>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 px-1 leading-relaxed">
-                          ඔබ DESH Papers Hub වෙත සාර්ථකව සම්බන්ධ වී ඇත. දැන් සියලුම ප්‍රශ්න පත්‍ර එක් ක්ලික් එකකින් බාගත හැක.
+                          ඔබ DESH EduHub වෙත සාර්ථකව සම්බන්ධ වී ඇත. දැන් සියලුම ප්‍රශ්න පත්‍ර එක් ක්ලික් එකකින් බාගත හැක.
                         </p>
                       </div>
 
@@ -226,29 +176,57 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              <div className="hidden lg:flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                <span>නොමිලේ Download සක්‍රීයයි</span>
+              <div className="flex items-center gap-1.5 py-1.5 px-2.5 sm:px-3 rounded-xl bg-slate-100/90 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] sm:text-xs text-slate-600 dark:text-slate-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span className="hidden sm:inline">නොමිලේ Download සක්‍රීයයි</span>
+                <span className="sm:hidden font-bold text-emerald-600 dark:text-emerald-400">Free</span>
               </div>
             )}
+          </div>
 
-            {/* PWA Install App Button (when available) */}
+          {/* ================= 2. CENTER: Logo & DESH EduHub Brand (Non-overlapping Flex item) ================= */}
+          <div className="flex-shrink-0 flex items-center justify-center px-1 sm:px-3">
+            <Link
+              href="/"
+              className="flex items-center gap-2 sm:gap-2.5 group shrink-0 transition-transform duration-300 hover:scale-102 cursor-pointer"
+              title="DESH EduHub"
+            >
+              {/* 3D Metallic Emblem Icon */}
+              <div className="relative shrink-0 filter drop-shadow-[0_4px_8px_rgba(15,23,42,0.18)] dark:drop-shadow-[0_6px_12px_rgba(0,0,0,0.5)] transition-transform duration-300 group-hover:scale-105">
+                <Image
+                  src="/desh-eduhub-logo.png"
+                  alt="DESH EduHub Metallic Logo"
+                  width={44}
+                  height={44}
+                  className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 object-contain rounded-xl"
+                  priority
+                />
+              </div>
+
+              {/* Reusable DESH EduHub 3D Metallic Text Component */}
+              <DeshEduHubLogo size="md" />
+            </Link>
+          </div>
+
+          {/* ================= 3. RIGHT: Actions (PWA, ThemeToggle, Admin Lock) ================= */}
+          <div className="flex-1 flex items-center justify-end gap-1.5 sm:gap-3 min-w-0">
+            {/* PWA Install App Button */}
             {canInstallPwa && (
               <button
                 type="button"
                 onClick={handleInstallApp}
                 className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer shrink-0 animate-fade-in"
-                title="DESH Papers App එක Install කරගන්න"
+                title="DESH EduHub App එක Install කරගන්න"
               >
                 <span>📲</span>
-                <span className="hidden sm:inline">Install App</span>
+                <span className="hidden md:inline">Install App</span>
               </button>
             )}
 
             {/* Theme Toggle (Dark/Light Switch) */}
             <ThemeToggle />
 
-            {/* Discreet Staff / Admin Access Button (Matching Exact Dimensions) */}
+            {/* Discreet Staff / Admin Access Button */}
             <Link
               href="/admin"
               className="h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-xl sm:rounded-2xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-800 transition-all duration-300 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shrink-0"

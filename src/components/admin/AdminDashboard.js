@@ -407,18 +407,18 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
           {/* Sidebar Brand Header */}
           <div className="h-20 px-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs p-1">
+              <div className="h-10 w-10 rounded-xl overflow-hidden shadow-xs border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-center shrink-0">
                 <Image
-                  src="/desh-logo.png"
-                  alt="DESH Logo"
-                  width={32}
-                  height={32}
-                  className="w-full h-full object-contain"
+                  src="/desh-eduhub-logo.png"
+                  alt="DESH EduHub Logo"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-contain rounded-xl"
                 />
               </div>
               <div>
                 <p className="font-black text-sm text-slate-900 dark:text-white leading-tight">
-                  DESH Admin
+                  DESH EduHub Admin
                 </p>
                 <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">
                   Management Hub

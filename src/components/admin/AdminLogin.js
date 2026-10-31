@@ -64,13 +64,13 @@ export default function AdminLogin() {
         <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800/80 p-8 transition-colors duration-300">
           {/* Logo & Header */}
           <div className="text-center mb-8">
-            <div className="relative h-16 w-16 mx-auto mb-4 flex items-center justify-center">
+            <div className="relative h-16 w-16 mx-auto mb-4 rounded-2xl overflow-hidden shadow-md border border-slate-100 dark:border-slate-800 flex items-center justify-center">
               <Image
-                src="/desh-logo.png"
-                alt="DESH Emblem"
+                src="/desh-eduhub-logo.png"
+                alt="DESH EduHub Emblem"
                 width={64}
                 height={64}
-                className="w-full h-full object-contain drop-shadow-md"
+                className="w-full h-full object-contain rounded-2xl"
               />
             </div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 text-xs font-bold mb-2">
@@ -78,7 +78,7 @@ export default function AdminLogin() {
               <span>Staff Only</span>
             </div>
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              DESH Admin Portal
+              DESH EduHub Admin
             </h1>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Enter your administrative credentials to manage past papers.
@@ -236,7 +236,7 @@ export default function AdminLogin() {
 
       {/* Footer info */}
       <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
-        DESH Papers Hub • Administrative Control Center
+        DESH EduHub • Administrative Control Center
       </div>
     </div>
   );

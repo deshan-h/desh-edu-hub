@@ -78,7 +78,7 @@ export default function PWAInstaller() {
       setIsInstallable(false);
       setDeferredPrompt(null);
       setIsStandalone(true);
-      console.log("DESH Papers Hub PWA installed successfully!");
+      console.log("DESH EduHub PWA installed successfully!");
     };
 
     window.addEventListener("appinstalled", handleAppInstalled);
@@ -130,7 +130,7 @@ export default function PWAInstaller() {
             <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 shadow-md">
               <Image
                 src="/icon-192.png"
-                alt="DESH Papers Logo"
+                alt="DESH EduHub Logo"
                 width={44}
                 height={44}
                 className="w-full h-full object-contain"
@@ -140,7 +140,7 @@ export default function PWAInstaller() {
             {/* Banner Text */}
             <div className="flex-1 min-w-0">
               <p className="text-xs font-black text-slate-900 dark:text-white leading-tight flex items-center gap-1.5">
-                <span>Install DESH Papers App</span>
+                <span>Install DESH EduHub App</span>
                 <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
                   PWA
                 </span>

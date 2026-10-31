@@ -6,7 +6,7 @@ import AdminDashboard from "@/components/admin/AdminDashboard";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Admin Portal | DESH Papers Hub",
+  title: "Admin Portal | DESH EduHub",
   description: "Administrative past papers management portal.",
 };
 

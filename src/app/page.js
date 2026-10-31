@@ -43,7 +43,7 @@ export default async function HomePage() {
           {/* Left: Brand copyright & quick links */}
           <div className="flex items-center gap-3 sm:gap-5">
             <span className="font-semibold text-slate-700 dark:text-slate-300">
-              © {new Date().getFullYear()} DESH Papers Hub
+              © {new Date().getFullYear()} DESH EduHub
             </span>
             <div className="hidden sm:flex items-center gap-4 text-[11px] text-slate-400 dark:text-slate-500">
               <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 transition">
