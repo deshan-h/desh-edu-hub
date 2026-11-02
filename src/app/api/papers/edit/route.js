@@ -33,6 +33,25 @@ export async function POST(request) {
       );
     }
 
+    // 2. Prevent duplicate papers when editing
+    const trimmedTitle = title.toString().trim();
+    const { data: duplicateMatches } = await supabase
+      .from("papers")
+      .select("id, title")
+      .neq("id", id)
+      .ilike("title", trimmedTitle)
+      .limit(1);
+
+    if (duplicateMatches && duplicateMatches.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `මෙම නමින් වෙනත් ප්‍රශ්න පත්‍රයක් දැනටමත් පවතී ("${duplicateMatches[0].title}").`,
+        },
+        { status: 409 }
+      );
+    }
+
     // 2. Prepare update payload
     let updatePayload = {
       title: title.toString().trim(),
@@ -58,9 +77,7 @@ export async function POST(request) {
     ) {
       console.warn("Column has_answers missing in Supabase, retrying without column...");
       delete updatePayload.has_answers;
-      if (has_answers && !updatePayload.title.includes("With Answers")) {
-        updatePayload.title = `${updatePayload.title} (With Answers)`;
-      }
+
       const retryResult = await supabase
         .from("papers")
         .update(updatePayload)

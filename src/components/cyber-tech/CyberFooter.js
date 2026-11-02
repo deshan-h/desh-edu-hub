@@ -6,7 +6,7 @@ import { Cpu, ArrowRight, Zap, Terminal, Shield, Sparkles } from "lucide-react";
 export default function CyberFooter() {
   return (
     <footer className="relative bg-slate-950/80 backdrop-blur-2xl border-t border-white/10 pt-16 pb-12 overflow-hidden">
-      
+
       {/* Top Banner CTA Box */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 mb-16">
         <div className="relative group">
@@ -124,4 +124,5 @@ export default function CyberFooter() {
     </footer>
   );
 }
+
 

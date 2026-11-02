@@ -37,7 +37,7 @@ export default function CyberAbout() {
   return (
     <section id="about" className="relative py-24 md:py-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-16">
-        
+
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-cyan-500/30 text-cyan-400 text-xs font-mono uppercase tracking-widest">
@@ -60,7 +60,7 @@ export default function CyberAbout() {
 
         {/* 2-Column Architecture Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          
+
           {/* Left: Interactive Feature Card Container */}
           <div className="relative group">
             {/* Ambient animated gradient glow */}
@@ -159,4 +159,5 @@ export default function CyberAbout() {
     </section>
   );
 }
+
 

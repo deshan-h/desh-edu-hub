@@ -2,14 +2,68 @@
 
 import { useState, useEffect, useMemo } from "react";
 import DownloadModal from "./DownloadModal";
+import SearchBooksBackground from "./SearchBooksBackground";
+import PremiumSelect from "@/components/ui/PremiumSelect";
 
 const CATEGORIES = [
-  { id: "All", label: "සියල්ල (All)" },
-  { id: "O/L", label: "සාමාන්‍ය පෙළ (O/L)" },
-  { id: "A/L", label: "උසස් පෙළ (A/L)" },
-  { id: "Grade 5", label: "5 ශ්‍රේණිය (Grade 5)" },
-  { id: "Provincial", label: "පළාත් (Provincial)" },
-  { id: "Model", label: "ආදර්ශ (Model)" },
+  {
+    id: "All",
+    label: "සියල්ල (All)",
+    icon: (
+      <svg className="w-4 h-4 shrink-0 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+      </svg>
+    ),
+  },
+  {
+    id: "O/L",
+    label: "සාමාන්‍ය පෙළ (O/L)",
+    icon: (
+      <svg className="w-4 h-4 shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+      </svg>
+    ),
+  },
+  {
+    id: "A/L",
+    label: "උසස් පෙළ (A/L)",
+    icon: (
+      <svg className="w-4 h-4 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z" />
+      </svg>
+    ),
+  },
+  {
+    id: "Grade 5",
+    label: "5 ශ්‍රේණිය (Grade 5)",
+    icon: (
+      <svg className="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+      </svg>
+    ),
+  },
+  {
+    id: "Provincial",
+    label: "පළාත් (Provincial)",
+    icon: (
+      <svg className="w-4 h-4 shrink-0 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
+  {
+    id: "Model",
+    label: "ආදර්ශ (Model)",
+    icon: (
+      <svg className="w-4 h-4 shrink-0 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" strokeWidth={2} />
+        <circle cx="12" cy="12" r="5" strokeWidth={2} />
+        <circle cx="12" cy="12" r="1.5" strokeWidth={2} fill="currentColor" />
+      </svg>
+    ),
+  },
 ];
 
 // Helper function to check if paper includes answers
@@ -57,9 +111,16 @@ export default function PapersGallery({ initialPapers = [] }) {
     window.addEventListener("storage", handleUserUpdate);
     window.addEventListener("desh_user_updated", handleUserUpdate);
 
+    // Sync search query with Navbar search bar
+    const handleNavbarSearch = (e) => {
+      setSearchQuery(e.detail || "");
+    };
+    window.addEventListener("desh_search_query", handleNavbarSearch);
+
     return () => {
       window.removeEventListener("storage", handleUserUpdate);
       window.removeEventListener("desh_user_updated", handleUserUpdate);
+      window.removeEventListener("desh_search_query", handleNavbarSearch);
     };
   }, []);
 
@@ -71,7 +132,7 @@ export default function PapersGallery({ initialPapers = [] }) {
           .map((p) => p.year)
           .filter(Boolean)
       )
-    ).sort((a, b) => b - a);
+    ).sort((a, b) => Number(b) - Number(a));
     return ["All", ...years];
   }, [papers]);
 
@@ -96,6 +157,39 @@ export default function PapersGallery({ initialPapers = [] }) {
       return matchesCategory && matchesYear && matchesSearch;
     });
   }, [papers, selectedCategory, selectedYear, searchQuery]);
+
+  // Group filtered papers into a Year-by-Year Timeline in descending order (2026, 2025, 2024...)
+  const timelineGroups = useMemo(() => {
+    const grouped = {};
+
+    // Sort papers descending by year, then by newest created
+    const sorted = [...filteredPapers].sort((a, b) => {
+      const yA = Number(a.year) || 0;
+      const yB = Number(b.year) || 0;
+      if (yB !== yA) return yB - yA;
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+
+    sorted.forEach((paper) => {
+      const yr = paper.year ? paper.year.toString() : "Other";
+      if (!grouped[yr]) {
+        grouped[yr] = [];
+      }
+      grouped[yr].push(paper);
+    });
+
+    // Ensure strictly descending order
+    const sortedYearKeys = Object.keys(grouped).sort((a, b) => {
+      if (a === "Other") return 1;
+      if (b === "Other") return -1;
+      return Number(b) - Number(a);
+    });
+
+    return sortedYearKeys.map((year) => ({
+      year,
+      papers: grouped[year],
+    }));
+  }, [filteredPapers]);
 
   // Handle Download Click
   const handleDownloadClick = (paper) => {
@@ -172,171 +266,203 @@ export default function PapersGallery({ initialPapers = [] }) {
 
   return (
     <div className="w-full">
-      {/* 1. TOP OF THE PAGE SEARCH BAR (Page eke udatama) */}
-      <div className="relative overflow-hidden bg-gradient-to-b from-blue-50/80 via-white to-slate-50 dark:from-slate-900/60 dark:via-slate-950 dark:to-slate-950 pt-3 sm:pt-4 pb-4 sm:pb-6 px-4 sm:px-6 lg:px-8 border-b border-slate-200/80 dark:border-slate-800/80 transition-colors duration-300">
-        {/* Ambient glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/10 dark:bg-blue-600/10 blur-3xl rounded-full pointer-events-none" />
+      {/* 1. TOP HERO WITH BOOKS BACKGROUND DESIGN (Seamless & Fixed) */}
+      <div className="relative overflow-visible z-20 bg-gradient-to-b from-transparent via-blue-50/30 to-transparent dark:from-transparent dark:via-blue-950/20 dark:to-transparent pt-8 sm:pt-12 pb-6 sm:pb-8 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+        {/* Books & Library Background Art */}
+        <SearchBooksBackground />
 
-        <div className="relative max-w-4xl mx-auto text-center">
-
-          {/* Heading */}
-          <h2 className="text-lg sm:text-2xl font-black text-slate-950 dark:text-white tracking-tight mb-3">
-            ඔබට අවශ්‍ය ප්‍රශ්න පත්‍රය මෙතනින් සොයන්න
-          </h2>
-
-          {/* Prominent Search Bar */}
-          <div className="relative max-w-2xl mx-auto mb-3.5">
-            <span className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none text-blue-600 dark:text-blue-400">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </span>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="විෂය (Subject), ප්‍රශ්න පත්‍රයේ නම හෝ වසර මෙතැන Type කරන්න..."
-              className="w-full pl-12 sm:pl-14 pr-12 py-3.5 sm:py-4 text-sm sm:text-base bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-2xl shadow-lg shadow-blue-500/5 dark:shadow-none border-2 border-blue-100 dark:border-slate-800 focus:outline-none focus:border-blue-500 dark:focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-200"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                title="සොයන පදය ඉවත් කරන්න"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Category Filter Pills & Year Selector */}
-          <div className="flex flex-wrap md:flex-nowrap items-center justify-center gap-2 max-w-6xl mx-auto overflow-x-auto no-scrollbar py-1">
+        <div className="relative max-w-5xl mx-auto text-center z-10">
+          {/* Individual Category & Year Filter Chips (Pushed down comfortably) */}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 max-w-5xl mx-auto px-2 pt-3 sm:pt-5">
             {CATEGORIES.map((cat) => {
               const isActive = selectedCategory === cat.id;
               return (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`whitespace-nowrap shrink-0 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shadow-xs cursor-pointer ${isActive
-                      ? "bg-blue-600 text-white shadow-blue-500/25 shadow-md scale-102"
-                      : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
-                    }`}
+                  className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 border border-blue-500 scale-102"
+                      : "bg-white/80 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs"
+                  }`}
                 >
-                  {cat.label}
+                  <span className={`shrink-0 transition-colors ${isActive ? "text-white" : ""}`}>
+                    {cat.icon}
+                  </span>
+                  <span>{cat.label}</span>
                 </button>
               );
             })}
 
-            {/* Year Selector */}
-            <select
+            {/* Modern Calendar Year Selector Dropdown Chip */}
+            <PremiumSelect
               value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="whitespace-nowrap shrink-0 px-3 py-2 text-xs bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold cursor-pointer"
-            >
-              {availableYears.map((yr) => (
-                <option key={yr} value={yr}>
-                  {yr === "All" ? "සියලුම වසර (Years)" : yr}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedYear}
+              options={availableYears.map((yr) => ({
+                value: yr,
+                label: yr === "All" ? "සියලුම වසර (All Years)" : `${yr} විභාග`,
+                badge: yr === "2026" ? "New" : undefined,
+              }))}
+              size="pill"
+              align="right"
+              className="shrink-0"
+              triggerClassName={
+                selectedYear !== "All"
+                  ? "!bg-blue-600 !text-white !border-blue-500 shadow-md shadow-blue-500/25"
+                  : ""
+              }
+              icon={
+                <svg className={`w-3.5 h-3.5 ${selectedYear !== "All" ? "text-white" : "text-cyan-600 dark:text-cyan-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              }
+            />
           </div>
         </div>
       </div>
 
-      {/* 2. PAPERS GRID & RESULTS SECTION */}
-      <section id="papers-section" className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        {/* Results summary bar */}
-        <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-6 gap-2">
-          <div>
-            ප්‍රශ්න පත්‍ර <span className="font-bold text-slate-800 dark:text-slate-200">{filteredPapers.length}</span> ක් හමුවිය (සම්පූර්ණ එකතුව: {papers.length})
-          </div>
-        </div>
+      {/* 2. PAPERS SECTION: ATTRACTIVE YEAR-BY-YEAR TIMELINE */}
+      <section id="papers-section" className="pt-3 sm:pt-4 pb-12 max-w-[99.2%] 2xl:max-w-[99.5%] mx-auto px-3 sm:px-6 relative">
+        {/* Timeline Content */}
+        {timelineGroups.length > 0 ? (
+          <div className="relative space-y-10 sm:space-y-12">
+            {/* Glowing Vertical Timeline Spine (Desktop / Tablet) */}
+            <div className="hidden sm:block absolute left-5 lg:left-6 top-6 bottom-10 w-1 bg-gradient-to-b from-cyan-500 via-blue-600 to-indigo-600 rounded-full opacity-40 dark:opacity-30 pointer-events-none" />
 
-        {/* Grid of Papers (Compact, Low-Height Cards) */}
-        {filteredPapers.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
-            {filteredPapers.map((paper) => (
-              <div
-                key={paper.id || paper.file_url}
-                className="group relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:border-blue-500/50 dark:hover:border-blue-500/50 shadow-xs hover:shadow-md hover:shadow-blue-500/5 hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-3.5 flex flex-col justify-between"
-              >
-                <div>
-                  {/* Top Bar: Category, Subject & Year in one sleek line */}
-                  <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                    <div className="flex items-center gap-1.5 overflow-hidden">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${getCategoryBadge(
-                          paper.category
-                        )}`}
+            {/* Year Groups Loop */}
+            {timelineGroups.map((group) => {
+              const is2026 = group.year === "2026";
+
+              return (
+                <div
+                  key={group.year}
+                  id={`timeline-year-${group.year}`}
+                  className="relative sm:pl-16 lg:pl-20 scroll-mt-32 transition-all duration-300"
+                >
+                  {/* Timeline Milestone Node (Anchored to vertical line - No Blinking) */}
+                  <div className="sm:absolute sm:left-0 sm:top-0 mb-3 sm:mb-0 flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 lg:w-11 lg:h-11 rounded-2xl flex items-center justify-center font-black text-xs lg:text-sm shadow-md transition-all shrink-0 ${
+                        is2026
+                          ? "bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-cyan-500/20 ring-4 ring-white dark:ring-slate-950"
+                          : "bg-gradient-to-tr from-blue-600 to-indigo-700 text-white shadow-blue-500/20 ring-4 ring-white dark:ring-slate-950"
+                      }`}
+                    >
+                      {is2026 ? "✨" : group.year.length === 4 ? group.year.slice(2) : "📅"}
+                    </div>
+
+                    {/* Mobile-only Year Title (next to milestone) */}
+                    <div className="sm:hidden flex items-center gap-2">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        {group.year} විභාග ප්‍රශ්න පත්‍ර
+                      </h3>
+                      {is2026 && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-xs">
+                          Latest
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Desktop Year Header Bar */}
+                  <div className="hidden sm:flex items-center justify-between gap-4 pb-2.5 mb-4 border-b border-slate-200/60 dark:border-slate-800/60">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                        <span>{group.year} විභාග ප්‍රශ්න පත්‍ර</span>
+                      </h3>
+
+                      {is2026 && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-xs">
+                          ✨ Latest • අලුත්ම එකතුව
+                        </span>
+                      )}
+
+                      <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80">
+                        {group.papers.length} {group.papers.length === 1 ? "Paper" : "Papers"}
+                      </span>
+                    </div>
+
+                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                      Year Milestone #{group.year}
+                    </span>
+                  </div>
+
+                  {/* Cards Grid for this Year */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3.5 sm:gap-4">
+                    {group.papers.map((paper) => (
+                      <div
+                        key={paper.id || paper.file_url}
+                        className="group relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:border-blue-500/50 dark:hover:border-blue-500/50 shadow-xs hover:shadow-md hover:shadow-blue-500/5 hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-3.5 flex flex-col justify-between"
                       >
-                        {paper.category || "General"}
-                      </span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 truncate">
-                        {paper.subject}
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60 shrink-0">
-                      {paper.year}
-                    </span>
+                        <div>
+                          {/* Top Bar: Category, Subject & Year in one sleek line */}
+                          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                            <div className="flex items-center gap-1.5 overflow-hidden">
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${getCategoryBadge(
+                                  paper.category
+                                )}`}
+                              >
+                                {paper.category || "General"}
+                              </span>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 truncate">
+                                {paper.subject}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60 shrink-0">
+                              {paper.year}
+                            </span>
+                          </div>
+
+                          {/* Title */}
+                          <h4 className="text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-snug">
+                            {paper.title}
+                          </h4>
+
+                          {/* With Answers Badge */}
+                          {checkHasAnswers(paper) && (
+                            <div className="mt-1.5 flex items-center">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-300/80 dark:border-emerald-800/80 shadow-2xs">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <span>With Answers (පිළිතුරු සහිතයි)</span>
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Card Footer / Download Action (Slimmer spacing) */}
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
+                              </svg>
+                              <span>PDF Document</span>
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadClick(paper)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white text-[11px] font-bold rounded-lg shadow-2xs hover:shadow-blue-500/20 transition-all cursor-pointer"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                              />
+                            </svg>
+                            <span>Download</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-
-                  {/* Title */}
-                  <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-snug">
-                    {paper.title}
-                  </h3>
-
-                  {/* With Answers Badge */}
-                  {checkHasAnswers(paper) && (
-                    <div className="mt-1.5 flex items-center">
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-300/80 dark:border-emerald-800/80 shadow-2xs">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span>With Answers (පිළිතුරු සහිතයි)</span>
-                      </span>
-                    </div>
-                  )}
                 </div>
-
-                {/* Card Footer / Download Action (Slimmer spacing) */}
-                <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                    <span className="flex items-center gap-1">
-                      <svg className="w-3 h-3 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
-                      </svg>
-                      <span>PDF</span>
-                    </span>
-                    <span className="text-slate-300 dark:text-slate-700">•</span>
-                    <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400" title="මුළු බාගත කිරීම් ගණන">
-                      <svg className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      <span className="font-bold">{paper.download_count ?? 0}</span>
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadClick(paper)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white text-[11px] font-bold rounded-lg shadow-2xs hover:shadow-blue-500/20 transition-all cursor-pointer"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                      />
-                    </svg>
-                    <span>Download</span>
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           /* Empty State */

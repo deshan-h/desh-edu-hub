@@ -24,7 +24,7 @@ export default function CyberHero() {
   return (
     <section id="hero" className="relative pt-36 pb-20 md:pt-44 md:pb-28 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        
+
         {/* Top Announcement Pill */}
         <div className="flex justify-center mb-6">
           <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-900/60 backdrop-blur-xl border border-cyan-500/30 text-cyan-300 text-xs font-mono tracking-wide shadow-[0_0_20px_rgba(6,182,212,0.15)] animate-pulse">
@@ -63,7 +63,7 @@ export default function CyberHero() {
               <Zap className="w-5 h-5 text-white" />
               <span>Explore Ecosystem</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
-              
+
               {/* Inner Hover Sweep Effect */}
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out rounded-2xl pointer-events-none" />
             </a>
@@ -145,4 +145,5 @@ export default function CyberHero() {
     </section>
   );
 }
+
 
