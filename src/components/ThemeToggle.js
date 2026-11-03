@@ -36,7 +36,7 @@ export default function ThemeToggle() {
       onClick={toggleTheme}
       type="button"
       aria-label="Toggle Dark Mode"
-      className="relative h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-xl sm:rounded-2xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-amber-400 border border-slate-200 dark:border-slate-800 transition-all duration-300 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shrink-0"
+      className="relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-2xl bg-amber-50/90 dark:bg-slate-900/90 hover:bg-amber-100 dark:hover:bg-slate-800 text-amber-600 dark:text-amber-400 border border-amber-200/90 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-500/40 transition-all duration-300 shadow-2xs hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer shrink-0"
       title={theme === "dark" ? "Light Mode එකට මාරු වන්න" : "Dark Mode එකට මාරු වන්න"}
     >
       {theme === "dark" ? (

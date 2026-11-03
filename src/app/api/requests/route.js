@@ -105,12 +105,22 @@ export async function POST(request) {
   }
 }
 
-export async function GET() {
+export async function GET(request) {
   try {
-    const { data, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const whatsapp = searchParams.get("whatsapp");
+
+    let query = supabase
       .from("requests")
       .select("*")
       .order("created_at", { ascending: false });
+
+    if (whatsapp && whatsapp.trim().length >= 8) {
+      const cleanWa = whatsapp.trim();
+      query = query.eq("whatsapp", cleanWa);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.warn("Supabase requests fetch notice:", error.message);

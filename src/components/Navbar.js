@@ -5,17 +5,21 @@ import Link from "next/link";
 import Image from "next/image";
 import ThemeToggle from "./ThemeToggle";
 import DeshEduHubLogo from "./DeshEduHubLogo";
+import NotificationDropdown from "./NotificationDropdown";
 
-export default function Navbar() {
+export default function Navbar({ papers = [] }) {
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [guestMenuOpen, setGuestMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [canInstallPwa, setCanInstallPwa] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const userMenuRef = useRef(null);
+  const guestMenuRef = useRef(null);
   const mobileMenuRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // Read stored user from localStorage
   const loadUser = () => {
@@ -50,11 +54,24 @@ export default function Navbar() {
     const handleSearchReset = () => setSearchQuery("");
     window.addEventListener("desh_search_reset", handleSearchReset);
 
+    // Global keyboard shortcut: Ctrl+K or Cmd+K to focus search input
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+          searchInputRef.current.select();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
     return () => {
       window.removeEventListener("pwa_ready_to_install", handlePwaReady);
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("desh_user_updated", handleStorageChange);
       window.removeEventListener("desh_search_reset", handleSearchReset);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
@@ -72,19 +89,25 @@ export default function Navbar() {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("desh_search_query", { detail: "" }));
     }
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
   };
 
-  // Close profile dropdown & mobile menu when clicking outside
+  // Close profile dropdown, guest card & mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
         setMenuOpen(false);
       }
+      if (guestMenuRef.current && !guestMenuRef.current.contains(e.target)) {
+        setGuestMenuOpen(false);
+      }
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) {
         setMobileMenuOpen(false);
       }
     };
-    if (menuOpen || mobileMenuOpen) {
+    if (menuOpen || guestMenuOpen || mobileMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("touchstart", handleClickOutside);
     }
@@ -92,7 +115,7 @@ export default function Navbar() {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
     };
-  }, [menuOpen, mobileMenuOpen]);
+  }, [menuOpen, guestMenuOpen, mobileMenuOpen]);
 
   const handleInstallApp = async () => {
     if (typeof window !== "undefined" && window.pwaDeferredPrompt) {
@@ -152,7 +175,7 @@ export default function Navbar() {
   return (
     <>
       {/* ================= FULL-STRETCHED EDGE-TO-EDGE FLOATING BOX NAVBAR ================= */}
-      <div className="sticky top-1 sm:top-2 z-40 w-full px-1.5 sm:px-2.5 max-w-[99.2%] 2xl:max-w-[99.5%] mx-auto transition-all duration-300">
+      <div className="sticky top-2.5 sm:top-4 z-40 w-full pt-1.5 sm:pt-2.5 px-1.5 sm:px-2.5 max-w-[99.2%] 2xl:max-w-[99.5%] mx-auto transition-all duration-300">
         <header className="relative w-full bg-white/70 dark:bg-slate-900/50 backdrop-blur-2xl backdrop-saturate-150 rounded-2xl border border-white/60 dark:border-white/10 shadow-xl shadow-slate-900/[0.04] dark:shadow-black/50 px-3 sm:px-5 h-15 sm:h-17 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300">
           
           {/* Subtle top inner highlight rim */}
@@ -161,82 +184,96 @@ export default function Navbar() {
           {/* ================= 1. LEFT: Brand & 3D Metallic Logo ================= */}
           <Link
             href="/"
-            className="flex items-center gap-1.5 sm:gap-2.5 group shrink-0 transition-transform duration-300 hover:scale-102 cursor-pointer"
+            className="flex items-center gap-2 sm:gap-3 group shrink-0 transition-transform duration-300 hover:scale-102 cursor-pointer"
             title="DESH EduHub"
           >
-            {/* 3D Metallic Emblem Icon */}
-            <div className="relative shrink-0 filter drop-shadow-[0_2px_6px_rgba(15,23,42,0.18)] dark:drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)] transition-transform duration-300 group-hover:scale-105">
+            {/* 3D Metallic Emblem Icon with Aura Pedestal Badge */}
+            <div className="relative shrink-0 flex items-center justify-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl bg-gradient-to-br from-white/95 via-slate-50/80 to-slate-100/60 dark:from-slate-800/90 dark:via-slate-900/90 dark:to-slate-950 border border-slate-200/90 dark:border-white/15 shadow-sm shadow-slate-900/5 dark:shadow-cyan-500/15 group-hover:shadow-md group-hover:shadow-blue-500/25 group-hover:border-blue-400/60 dark:group-hover:border-cyan-400/50 transition-all duration-300">
               <Image
-                src="/desh-eduhub-logo.png"
+                src="/icon-512.png"
                 alt="DESH EduHub Logo"
-                width={36}
-                height={36}
-                className="w-7 h-7 sm:w-8.5 sm:h-8.5 object-contain rounded-xl"
+                width={40}
+                height={40}
+                className="w-7.5 h-7.5 sm:w-9 sm:h-9 object-contain drop-shadow-[0_2px_6px_rgba(15,23,42,0.18)] dark:drop-shadow-[0_0_12px_rgba(56,189,248,0.45)] transition-transform duration-300 group-hover:scale-108"
                 priority
               />
             </div>
 
-            {/* Brand Text: DESH Edu on top, Hub in rounded rectangle below */}
-            <DeshEduHubLogo size="sm" />
+            {/* Brand Text: DESH Edu on top, Hub with linear glow below */}
+            <DeshEduHubLogo size="navbar" />
           </Link>
 
-          {/* ================= 2. CENTER: Embedded Navbar Search Bar (Always visible on Desktop & Mobile) ================= */}
+          {/* ================= 2. CENTER: Embedded Navbar Search Bar (Premium Floating Glass Capsule) ================= */}
           <div className="flex-1 max-w-xl sm:max-w-2xl mx-auto px-1 sm:px-3">
             <div className="relative w-full group">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-blue-600 dark:text-cyan-400">
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Left Ambient Focus / Glow Aura */}
+              <span className="absolute inset-y-0 left-0 pl-3 sm:pl-3.5 flex items-center pointer-events-none text-blue-600 dark:text-cyan-400 group-focus-within:scale-110 transition-transform duration-200">
+                <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </span>
+
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}
                 placeholder="විෂය, නම හෝ වසර සොයන්න..."
-                className="w-full pl-8 sm:pl-9 pr-7 sm:pr-8 py-1.5 sm:py-2 text-xs sm:text-sm bg-slate-100/70 dark:bg-slate-950/45 backdrop-blur-md text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-xl border border-slate-200/70 dark:border-white/10 hover:border-blue-400 dark:hover:border-cyan-400/40 focus:outline-none focus:border-blue-500 focus:bg-white/90 dark:focus:bg-slate-950/80 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                className="w-full pl-9 sm:pl-10.5 pr-12 sm:pr-16 py-2 sm:py-2.5 text-xs sm:text-sm bg-slate-100/80 dark:bg-slate-950/60 backdrop-blur-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-white/10 hover:border-blue-400/80 dark:hover:border-cyan-400/50 focus:outline-none focus:border-blue-500 dark:focus:border-cyan-400 focus:bg-white dark:focus:bg-slate-950/95 focus:ring-3 focus:ring-blue-500/20 dark:focus:ring-cyan-400/25 shadow-xs transition-all duration-300"
               />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={handleClearSearch}
-                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer text-xs"
-                  title="සෙවුම ඉවත් කරන්න"
-                >
-                  ✕
-                </button>
-              )}
+
+              {/* Right Side Controls: Shortcut Badge & Clear Button */}
+              <div className="absolute inset-y-0 right-0 pr-2 sm:pr-3 flex items-center gap-1.5 pointer-events-auto">
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-300/80 dark:hover:bg-slate-700 transition cursor-pointer text-xs"
+                    title="සෙවුම ඉවත් කරන්න (Clear)"
+                    aria-label="Clear Search"
+                  >
+                    ✕
+                  </button>
+                ) : (
+                  <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-800/60 border border-slate-300/70 dark:border-white/10 rounded-md shadow-2xs select-none pointer-events-none">
+                    ⌘K
+                  </kbd>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* ================= 3. RIGHT (Desktop md+): PWA, ThemeToggle, Admin Lock, User Profile ================= */}
-          <div className="hidden md:flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {/* PWA Install Button */}
+          {/* ================= 3. RIGHT (Desktop md+): Uniform Icon-Only Buttons (Same Size, Distinct Colors) ================= */}
+          <div className="hidden md:flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {/* 1. PWA Install Button (Indigo Accent, Icon Only, Same Size) */}
             {canInstallPwa && (
               <button
                 type="button"
                 onClick={handleInstallApp}
-                className="h-8.5 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-blue-600 text-[11px] font-bold border border-slate-200 dark:border-slate-700 transition flex items-center gap-1 cursor-pointer"
-                title="Install PWA App"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200/80 dark:border-indigo-800/50 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 shrink-0"
+                title="Install App (PWA ඇප් එක ස්ථාපනය කරන්න)"
+                aria-label="Install App"
               >
-                <span>📲</span>
-                <span className="hidden lg:inline">Install</span>
+                <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
               </button>
             )}
 
-            {/* Cache Clear & Hard Refresh Button */}
+            {/* 2. Cache Clear & Hard Refresh Button (Emerald Accent, Same Size) */}
             <button
               type="button"
               onClick={handleClearCacheRefresh}
               disabled={isRefreshing}
-              className={`w-8.5 h-8.5 flex items-center justify-center rounded-xl bg-slate-100/90 dark:bg-slate-800/90 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-cyan-400 border border-slate-200/90 dark:border-slate-800/90 transition shadow-2xs cursor-pointer ${
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200/80 dark:border-emerald-800/50 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 shrink-0 ${
                 isRefreshing ? "cursor-wait opacity-80" : ""
               }`}
               title="Cache Clear & Hard Refresh (කෑෂ් මකා නැවත පූරණය කරන්න)"
               aria-label="Cache Clear & Hard Refresh"
             >
               <svg
-                className={`w-4 h-4 transition-transform duration-300 ${
-                  isRefreshing ? "animate-spin text-blue-600 dark:text-cyan-400" : "hover:rotate-180"
+                className={`w-4 h-4 sm:w-4.5 sm:h-4.5 transition-transform duration-300 ${
+                  isRefreshing ? "animate-spin text-emerald-600 dark:text-emerald-400" : "hover:rotate-180"
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -251,33 +288,23 @@ export default function Navbar() {
               </svg>
             </button>
 
-            {/* Dark/Light Theme Toggle */}
+            {/* 3. Dark/Light Theme Toggle (Amber Accent, Same Size) */}
             <ThemeToggle />
 
+            {/* 4. Notification Dropdown (Rose Accent, Same Size) */}
+            <NotificationDropdown papers={papers} />
 
-
-            {/* Student Profile / Free Status Button */}
+            {/* 5. User Avatar / Empty Avatar (Same Size, Icon-Only) */}
             {user ? (
-              <div className="relative" ref={userMenuRef}>
+              <div className="relative shrink-0" ref={userMenuRef}>
                 <button
                   type="button"
                   onClick={() => setMenuOpen(!menuOpen)}
-                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-sm shadow-blue-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs sm:text-sm uppercase shadow-sm shadow-blue-500/25 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                  title={user.name || "User Profile"}
+                  aria-label="User Profile"
                 >
-                  <div className="w-5 h-5 rounded-full bg-white/20 text-white flex items-center justify-center text-[10px] font-black uppercase">
-                    {user.name ? user.name.charAt(0) : "U"}
-                  </div>
-                  <span className="hidden sm:inline truncate max-w-[85px]">
-                    {user.name.split(" ")[0]}
-                  </span>
-                  <svg
-                    className={`w-3 h-3 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <span>{user.name ? user.name.charAt(0) : "U"}</span>
                 </button>
 
                 {/* Profile Dropdown (Desktop) */}
@@ -324,19 +351,58 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              <div className="hidden lg:flex items-center gap-1.5 py-1.5 px-3 rounded-full bg-slate-100/90 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 shrink-0">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                <span className="font-semibold">Free Download</span>
+              <div className="relative shrink-0" ref={guestMenuRef}>
+                {/* Empty Avatar for Guests (Exact same dimensions, Icon only, Slate/Blue tint) */}
+                <button
+                  type="button"
+                  onClick={() => setGuestMenuOpen(!guestMenuOpen)}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 hover:bg-blue-50 dark:hover:bg-slate-700/80 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-cyan-400 border border-slate-200/90 dark:border-white/10 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-2xs shrink-0"
+                  title="Guest Access (නොමිලේ ප්‍රවේශය)"
+                  aria-label="Guest Access"
+                >
+                  <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </button>
+
+                {/* Guest Dropdown Card */}
+                {guestMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 z-50 p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 animate-fade-in">
+                    <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-slate-900 dark:text-white">ආගන්තුක පරිශීලක (Guest)</p>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          100% නොමිලේ බාගත හැක
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="py-3 space-y-2">
+                      <div className="p-2.5 bg-blue-50/70 dark:bg-blue-950/40 rounded-xl text-blue-900 dark:text-blue-300 text-xs border border-blue-200/60 dark:border-blue-800/40 leading-relaxed">
+                        💡 කිසිදු ලියාපදිංචියකින් තොරව සියලුම පසුගිය ප්‍රශ්න පත්‍ර සහ ආදර්ශ ප්‍රශ්න පත්‍ර නොමිලේ ලබාගත හැක.
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* ================= 4. RIGHT (Mobile < md): 3-Lines Hamburger Button (iri 3k) ================= */}
-          <div className="flex md:hidden items-center shrink-0" ref={mobileMenuRef}>
+          {/* ================= 4. RIGHT (Mobile < md): Notification & 3-Lines Hamburger Button ================= */}
+          <div className="flex md:hidden items-center gap-1.5 sm:gap-2 shrink-0" ref={mobileMenuRef}>
+            {/* Notification Dropdown (Mobile) */}
+            <NotificationDropdown papers={papers} isMobile={true} />
+
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="w-8.5 h-8.5 flex items-center justify-center rounded-xl bg-slate-100/90 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-white/10 transition cursor-pointer shadow-2xs"
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-white/10 transition-all duration-200 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 shrink-0"
               aria-label="Open Navigation Menu"
               title="Menu"
             >

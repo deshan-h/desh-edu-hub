@@ -1,73 +1,385 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import DownloadModal from "./DownloadModal";
 import PdfViewerModal from "./PdfViewerModal";
 import FeedbackRequestModal from "./FeedbackRequestModal";
 import FloatingFeedbackButton from "./FloatingFeedbackButton";
+import RequestedPaperAlert from "./RequestedPaperAlert";
 import SearchBooksBackground from "./SearchBooksBackground";
 import PremiumSelect from "@/components/ui/PremiumSelect";
 
-const CATEGORIES = [
+// A/L Stream Options for Stream Filter Dropdown
+export const STREAM_OPTIONS = [
   {
-    id: "All",
-    label: "සියල්ල (All)",
-    icon: (
-      <svg className="w-4 h-4 shrink-0 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-      </svg>
-    ),
+    value: "All",
+    label: "සියලුම ධාරාවන් (All Streams)",
+    sinhala: "සියලුම A/L විෂය ධාරා",
+    short: "All Streams",
+    badge: "All",
+    icon: "🎓",
   },
+  {
+    value: "Arts",
+    label: "Arts (Languages & Humanities)",
+    sinhala: "කලා අංශය",
+    short: "Arts",
+    badge: "Arts",
+    icon: "🎨",
+  },
+  {
+    value: "Biological Science",
+    label: "Biological Science (Bio)",
+    sinhala: "ජීව විද්‍යා අංශය",
+    short: "Bio",
+    badge: "Bio",
+    icon: "🔬",
+  },
+  {
+    value: "Commerce",
+    label: "Commerce (Business & Accounting)",
+    sinhala: "වාණිජ අංශය",
+    short: "Commerce",
+    badge: "Commerce",
+    icon: "📊",
+  },
+  {
+    value: "Common General",
+    label: "Common General (General English & GIT)",
+    sinhala: "පොදු සාමාන්‍ය",
+    short: "General",
+    badge: "General",
+    icon: "🌐",
+  },
+  {
+    value: "Physical Science",
+    label: "Physical Science (Combined Maths)",
+    sinhala: "භෞතික විද්‍යා අංශය",
+    short: "Maths",
+    badge: "Maths",
+    icon: "📐",
+  },
+  {
+    value: "Technology",
+    label: "Technology (ET / BST / SFT / ICT)",
+    sinhala: "තාක්ෂණවේදය",
+    short: "Tech",
+    badge: "Tech",
+    icon: "⚙️",
+  },
+];
+
+// Tier 1: Exam Levels
+const LEVEL_CATEGORIES = [
   {
     id: "O/L",
     label: "සාමාන්‍ය පෙළ (O/L)",
-    icon: (
-      <svg className="w-4 h-4 shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-      </svg>
-    ),
+    shortLabel: "O/L",
   },
   {
     id: "A/L",
     label: "උසස් පෙළ (A/L)",
-    icon: (
-      <svg className="w-4 h-4 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z" />
-      </svg>
-    ),
+    shortLabel: "A/L",
   },
   {
     id: "Grade 5",
-    label: "5 ශ්‍රේණිය (Grade 5)",
-    icon: (
-      <svg className="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-      </svg>
-    ),
+    label: "ශිෂ්‍යත්වය (Grade 5)",
+    shortLabel: "ශිෂ්‍යත්වය",
   },
+];
+
+// Tier 2: Paper Types (Sub-tabs)
+const PAPER_TYPES = [
   {
-    id: "Provincial",
-    label: "පළාත් (Provincial)",
+    id: "Past",
+    label: "පසුගිය ප්‍රශ්න පත්‍ර (Past Papers)",
+    shortLabel: "Past Papers",
     icon: (
-      <svg className="w-4 h-4 shrink-0 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     ),
   },
   {
     id: "Model",
-    label: "ආදර්ශ (Model)",
+    label: "ආදර්ශ ප්‍රශ්න පත්‍ර (Model Papers)",
+    shortLabel: "Model Papers",
     icon: (
-      <svg className="w-4 h-4 shrink-0 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="9" strokeWidth={2} />
         <circle cx="12" cy="12" r="5" strokeWidth={2} />
         <circle cx="12" cy="12" r="1.5" strokeWidth={2} fill="currentColor" />
       </svg>
     ),
   },
+  {
+    id: "Provincial",
+    label: "පළාත් / වාර විභාග (Provincial Papers)",
+    shortLabel: "Provincial",
+    icon: (
+      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
 ];
+
+// Helper to determine Paper Type (Past / Model / Provincial)
+export const getPaperType = (paper) => {
+  const c = (paper.category || "").toLowerCase();
+  const t = (paper.title || "").toLowerCase();
+
+  if (
+    c === "provincial" ||
+    t.includes("provinc") ||
+    t.includes("term test") ||
+    t.includes("evaluation") ||
+    t.includes("pre test") ||
+    t.includes("පළාත්") ||
+    t.includes("වාර විභාග")
+  ) {
+    return "Provincial";
+  }
+
+  if (c === "model" || t.includes("model") || t.includes("ආදර්ශ")) {
+    return "Model";
+  }
+
+  return "Past";
+};
+
+// Helper to check if paper matches selected Exam Level
+export const matchesLevel = (paper, level) => {
+  if (level === "All") return true;
+  const c = (paper.category || "").toLowerCase();
+  const t = (paper.title || "").toLowerCase();
+
+  if (level === "O/L") {
+    return (
+      c === "o/l" ||
+      t.includes("o/l") ||
+      t.includes("ordinary level") ||
+      t.includes("grade 11") ||
+      t.includes("grade 10") ||
+      t.includes("සාමාන්‍ය පෙළ")
+    );
+  }
+  if (level === "A/L") {
+    return (
+      c === "a/l" ||
+      t.includes("a/l") ||
+      t.includes("advanced level") ||
+      t.includes("grade 12") ||
+      t.includes("grade 13") ||
+      t.includes("උසස් පෙළ")
+    );
+  }
+  if (level === "Grade 5") {
+    return (
+      c === "grade 5" ||
+      t.includes("grade 5") ||
+      t.includes("5 ශ්‍රේණිය") ||
+      t.includes("scholarship") ||
+      t.includes("ශිෂ්‍යත්ව")
+    );
+  }
+  return false;
+};
+
+// Helper to check if paper matches selected Paper Type
+export const matchesPaperType = (paper, paperType) => {
+  if (paperType === "All") return true;
+  return getPaperType(paper) === paperType;
+};
+
+// Helper to determine or auto-detect A/L Stream
+export const getPaperStream = (paper) => {
+  if (paper.stream && typeof paper.stream === "string" && paper.stream.trim()) {
+    return paper.stream.trim();
+  }
+
+  const s = `${paper.subject || ""} ${paper.title || ""}`.toLowerCase();
+
+  // 1. Physical Science (Combined Maths / Physics)
+  if (
+    s.includes("combined maths") ||
+    s.includes("combined mathematics") ||
+    s.includes("com maths") ||
+    s.includes("සංයුක්ත ගණිතය") ||
+    s.includes("physics") ||
+    s.includes("භෞතික විද්‍යා") ||
+    s.includes("භෞතික") ||
+    s.includes("physical science")
+  ) {
+    return "Physical Science";
+  }
+
+  // 2. Biological Science (Biology / Chemistry / Agriculture)
+  if (
+    s.includes("biology") ||
+    s.includes("ජීව විද්‍යා") ||
+    s.includes("chemistry") ||
+    s.includes("රසායන විද්‍යා") ||
+    s.includes("agricultural science") ||
+    s.includes("agriculture") ||
+    s.includes("කෘෂි විද්‍යා") ||
+    s.includes("කෘෂිකර්ම") ||
+    s.includes("bio science") ||
+    s.includes("biological science")
+  ) {
+    return "Biological Science";
+  }
+
+  // 3. Commerce (Accounting / Business Studies / Economics)
+  if (
+    s.includes("accounting") ||
+    s.includes("ගිණුම්කරණ") ||
+    s.includes("ගිණුම්") ||
+    s.includes("business studies") ||
+    s.includes("ව්‍යාපාර අධ්‍යයන") ||
+    s.includes("economics") ||
+    s.includes("econ") ||
+    s.includes("ආර්ථික විද්‍යා") ||
+    s.includes("commerce") ||
+    s.includes("වාණිජ")
+  ) {
+    return "Commerce";
+  }
+
+  // 4. Technology (ET / BST / SFT / ICT)
+  if (
+    s.includes("technology") ||
+    s.includes("තාක්ෂණවේද") ||
+    s.includes("engineering tech") ||
+    s.includes("ඉංජිනේරු තාක්ෂණ") ||
+    s.includes("et") ||
+    s.includes("bio systems") ||
+    s.includes("ජෛව පද්ධති") ||
+    s.includes("bst") ||
+    s.includes("science for tech") ||
+    s.includes("sft") ||
+    s.includes("information & comm") ||
+    s.includes("information tech") ||
+    s.includes("ict")
+  ) {
+    return "Technology";
+  }
+
+  // 5. Arts (Languages, History, Logic, Political Science, Buddhist Civilization, Media, etc.)
+  if (
+    s.includes("political") ||
+    s.includes("දේශපාලන") ||
+    s.includes("logic") ||
+    s.includes("තර්ක ශාස්ත්‍ර") ||
+    s.includes("තර්ක") ||
+    s.includes("history") ||
+    s.includes("ඉතිහාස") ||
+    s.includes("geography") ||
+    s.includes("භූගෝල") ||
+    s.includes("sinhala lit") ||
+    s.includes("සිංහල සාහිත්‍ය") ||
+    s.includes("buddhist civ") ||
+    s.includes("බෞද්ධ ශිෂ්ට") ||
+    s.includes("christian civ") ||
+    s.includes("media") ||
+    s.includes("සන්නිවේදන") ||
+    s.includes("drama") ||
+    s.includes("නාට්‍ය") ||
+    s.includes("music") ||
+    s.includes("සංගීත") ||
+    s.includes("art") ||
+    s.includes("චිත්‍ර කලාව") ||
+    s.includes("dancing") ||
+    s.includes("නර්තන") ||
+    s.includes("language") ||
+    s.includes("කලා")
+  ) {
+    return "Arts";
+  }
+
+  // 6. Common General (General English, GIT, General Knowledge)
+  if (
+    s.includes("general english") ||
+    s.includes("common general") ||
+    s.includes("git") ||
+    s.includes("general info") ||
+    s.includes("සාමාන්‍ය දැනීම") ||
+    s.includes("පොදු පරීක්ෂණ")
+  ) {
+    return "Common General";
+  }
+
+  return null;
+};
+
+// Helper for Stream Badge styling
+export const getStreamBadgeConfig = (stream) => {
+  if (!stream) return null;
+  const s = stream.toLowerCase();
+
+  if (s.includes("math") || s.includes("physical")) {
+    return {
+      label: "Physical Science",
+      sinhala: "භෞතික විද්‍යා",
+      icon: "📐",
+      className: "bg-blue-50/90 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200/90 dark:border-blue-800/60",
+      dotColor: "bg-blue-500",
+    };
+  }
+  if (s.includes("bio")) {
+    return {
+      label: "Biological Science",
+      sinhala: "ජීව විද්‍යා",
+      icon: "🔬",
+      className: "bg-emerald-50/90 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200/90 dark:border-emerald-800/60",
+      dotColor: "bg-emerald-500",
+    };
+  }
+  if (s.includes("commerc") || s.includes("account") || s.includes("business")) {
+    return {
+      label: "Commerce",
+      sinhala: "වාණිජ",
+      icon: "📊",
+      className: "bg-amber-50/90 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/90 dark:border-amber-800/60",
+      dotColor: "bg-amber-500",
+    };
+  }
+  if (s.includes("tech") || s.includes("engineering") || s.includes("bst") || s.includes("sft") || s.includes("et")) {
+    return {
+      label: "Technology",
+      sinhala: "තාක්ෂණවේදය",
+      icon: "⚙️",
+      className: "bg-purple-50/90 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200/90 dark:border-purple-800/60",
+      dotColor: "bg-purple-500",
+    };
+  }
+  if (s.includes("art") || s.includes("logic") || s.includes("polit") || s.includes("history")) {
+    return {
+      label: "Arts",
+      sinhala: "කලා",
+      icon: "🎨",
+      className: "bg-rose-50/90 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/90 dark:border-rose-800/60",
+      dotColor: "bg-rose-500",
+    };
+  }
+  if (s.includes("general") || s.includes("common") || s.includes("git")) {
+    return {
+      label: "Common General",
+      sinhala: "පොදු සාමාන්‍ය",
+      icon: "🌐",
+      className: "bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-300/80 dark:border-slate-700/80",
+      dotColor: "bg-slate-400",
+    };
+  }
+  return {
+    label: stream,
+    sinhala: stream,
+    icon: "📚",
+    className: "bg-indigo-50/90 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/90 dark:border-indigo-800/60",
+    dotColor: "bg-indigo-500",
+  };
+};
 
 // Helper function to check if paper includes answers
 const checkHasAnswers = (paper) => {
@@ -84,9 +396,49 @@ const checkHasAnswers = (paper) => {
 
 export default function PapersGallery({ initialPapers = [] }) {
   const [papers, setPapers] = useState(initialPapers);
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState("O/L");
+  const [selectedPaperType, setSelectedPaperType] = useState("Past");
   const [selectedYear, setSelectedYear] = useState("All");
+  const [selectedStream, setSelectedStream] = useState("All");
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+  const [alStreamDropdownOpen, setAlStreamDropdownOpen] = useState(false);
+  const yearDropdownRef = useRef(null);
+  const alStreamDropdownRef = useRef(null);
+
+  // Close dropdowns on outside click or escape
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (yearDropdownRef.current && !yearDropdownRef.current.contains(e.target)) {
+        setYearDropdownOpen(false);
+      }
+      if (alStreamDropdownRef.current && !alStreamDropdownRef.current.contains(e.target)) {
+        setAlStreamDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setYearDropdownOpen(false);
+        setAlStreamDropdownOpen(false);
+      }
+    };
+
+    if (yearDropdownOpen || alStreamDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [yearDropdownOpen, alStreamDropdownOpen]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Infinite Scroll Pagination State
+  const [visibleCount, setVisibleCount] = useState(15);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadMoreRef = useRef(null);
 
   // Auth / Modal State
   const [currentUser, setCurrentUser] = useState(null);
@@ -133,6 +485,11 @@ export default function PapersGallery({ initialPapers = [] }) {
     };
   }, []);
 
+  // Reset infinite scroll count when any filter or search changes
+  useEffect(() => {
+    setVisibleCount(15);
+  }, [selectedCategory, selectedPaperType, selectedYear, selectedStream, searchQuery]);
+
   // Compute unique years from papers
   const availableYears = useMemo(() => {
     const years = Array.from(
@@ -145,14 +502,59 @@ export default function PapersGallery({ initialPapers = [] }) {
     return ["All", ...years];
   }, [papers]);
 
-  // Filtered papers
-  const filteredPapers = useMemo(() => {
-    return papers.filter((paper) => {
-      const matchesCategory =
-        selectedCategory === "All" ||
-        paper.category?.toLowerCase() === selectedCategory.toLowerCase();
+  // Category select handler (O/L, A/L, Grade 5)
+  const handleSelectCategory = (catId) => {
+    setSelectedCategory(catId);
+    setAlStreamDropdownOpen(false);
+  };
 
-      const matchesYear =
+  // Dynamic counts for Paper Types (Past, Model, Provincial) matching current Level, Stream, and Year
+  const typeCounts = useMemo(() => {
+    const counts = { Past: 0, Model: 0, Provincial: 0 };
+    papers.forEach((paper) => {
+      if (!matchesLevel(paper, selectedCategory)) return;
+
+      // Filter counts by Stream when in A/L
+      if (selectedCategory === "A/L" && selectedStream !== "All") {
+        const paperStream = getPaperStream(paper);
+        if (paperStream !== selectedStream) return;
+      }
+
+      if (selectedYear !== "All" && paper.year?.toString() !== selectedYear.toString()) return;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const match =
+          paper.title?.toLowerCase().includes(q) ||
+          paper.subject?.toLowerCase().includes(q) ||
+          paper.year?.toString().includes(q);
+        if (!match) return;
+      }
+
+      const type = getPaperType(paper);
+      if (counts[type] !== undefined) {
+        counts[type]++;
+      }
+    });
+    return counts;
+  }, [papers, selectedCategory, selectedStream, selectedYear, searchQuery]);
+
+  // Filtered papers (matching Level, Stream for A/L, Paper Type, Year, and Search Query)
+  const filteredPapers = useMemo(() => {
+    const list = papers.filter((paper) => {
+      const matchesCat = matchesLevel(paper, selectedCategory);
+      const matchesType =
+        selectedCategory === "All" || selectedPaperType === "All"
+          ? true
+          : matchesPaperType(paper, selectedPaperType);
+
+      // Filter by Stream for A/L
+      if (selectedCategory === "A/L" && selectedStream !== "All") {
+        const paperStream = getPaperStream(paper);
+        if (paperStream !== selectedStream) return false;
+      }
+
+      const matchesYr =
         selectedYear === "All" ||
         paper.year?.toString() === selectedYear.toString();
 
@@ -163,19 +565,132 @@ export default function PapersGallery({ initialPapers = [] }) {
         paper.subject?.toLowerCase().includes(query) ||
         paper.year?.toString().includes(query);
 
-      return matchesCategory && matchesYear && matchesSearch;
+      return matchesCat && matchesType && matchesYr && matchesSearch;
     });
-  }, [papers, selectedCategory, selectedYear, searchQuery]);
 
-  // Group filtered papers into a Year-by-Year Timeline in descending order (2026, 2025, 2024...)
-  const timelineGroups = useMemo(() => {
-    const grouped = {};
-
-    // Sort papers descending by year, then by newest created
-    const sorted = [...filteredPapers].sort((a, b) => {
+    // Sort papers: Year descending first, then A/L Stream & Subject (A-Z), and O/L subjects alphabetically (A-Z)
+    return list.sort((a, b) => {
       const yA = Number(a.year) || 0;
       const yB = Number(b.year) || 0;
       if (yB !== yA) return yB - yA;
+
+      const isA_AL = selectedCategory === "A/L" || matchesLevel(a, "A/L");
+      const isB_AL = selectedCategory === "A/L" || matchesLevel(b, "A/L");
+
+      // 1. For A/L papers: 1. Stream-wise Alphabetical (A-Z), 2. Subject-wise Alphabetical (A-Z)
+      if (isA_AL && isB_AL) {
+        const streamA = getPaperStream(a) || "Other";
+        const streamB = getPaperStream(b) || "Other";
+        const streamCmp = streamA.localeCompare(streamB, undefined, { sensitivity: "base", numeric: true });
+        if (streamCmp !== 0) return streamCmp;
+
+        const subA = (a.subject || a.title || "").trim();
+        const subB = (b.subject || b.title || "").trim();
+        const subCmp = subA.localeCompare(subB, undefined, { sensitivity: "base", numeric: true });
+        if (subCmp !== 0) return subCmp;
+      }
+
+      // 2. For O/L papers, sort alphabetically by subject name (A to Z)
+      if (selectedCategory === "O/L" || (matchesLevel(a, "O/L") && matchesLevel(b, "O/L"))) {
+        const subA = (a.subject || a.title || "").trim();
+        const subB = (b.subject || b.title || "").trim();
+        const cmp = subA.localeCompare(subB, undefined, { sensitivity: "base", numeric: true });
+        if (cmp !== 0) return cmp;
+      }
+
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+  }, [papers, selectedCategory, selectedPaperType, selectedYear, selectedStream, searchQuery]);
+
+  // Infinite Scroll: Intersection Observer to reveal papers in batches of 15
+  useEffect(() => {
+    if (visibleCount >= filteredPapers.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsLoadingMore(true);
+          setTimeout(() => {
+            setVisibleCount((prev) => Math.min(prev + 15, filteredPapers.length));
+            setIsLoadingMore(false);
+          }, 300);
+        }
+      },
+      { rootMargin: "250px" }
+    );
+
+    const el = loadMoreRef.current;
+    if (el) observer.observe(el);
+
+    return () => {
+      if (el) observer.unobserve(el);
+    };
+  }, [visibleCount, filteredPapers.length]);
+
+  // Listen for global notification events (View paper, Download paper, Open request modal)
+  useEffect(() => {
+    const handleViewEvent = (e) => {
+      if (e.detail) setViewingPaper(e.detail);
+    };
+    const handleDownloadEvent = (e) => {
+      if (e.detail) handleDownloadClick(e.detail);
+    };
+    const handleOpenRequestEvent = () => {
+      setFeedbackInitialTab("request");
+      setFeedbackInitialSubject("");
+      setFeedbackModalOpen(true);
+    };
+
+    window.addEventListener("desh_view_paper", handleViewEvent);
+    window.addEventListener("desh_download_paper", handleDownloadEvent);
+    window.addEventListener("desh_open_request_modal", handleOpenRequestEvent);
+
+    return () => {
+      window.removeEventListener("desh_view_paper", handleViewEvent);
+      window.removeEventListener("desh_download_paper", handleDownloadEvent);
+      window.removeEventListener("desh_open_request_modal", handleOpenRequestEvent);
+    };
+  }, [papers, currentUser]);
+
+  // Papers slice currently visible in the DOM
+  const visiblePapers = useMemo(() => {
+    return filteredPapers.slice(0, visibleCount);
+  }, [filteredPapers, visibleCount]);
+
+  // Group visible papers into a Year-by-Year Timeline in descending order (2026, 2025, 2024...)
+  const timelineGroups = useMemo(() => {
+    const grouped = {};
+
+    // Sort papers descending by year, then A/L Stream & Subject (A-Z), and O/L Subject (A-Z)
+    const sorted = [...visiblePapers].sort((a, b) => {
+      const yA = Number(a.year) || 0;
+      const yB = Number(b.year) || 0;
+      if (yB !== yA) return yB - yA;
+
+      const isA_AL = selectedCategory === "A/L" || matchesLevel(a, "A/L");
+      const isB_AL = selectedCategory === "A/L" || matchesLevel(b, "A/L");
+
+      // 1. For A/L papers: 1. Stream-wise Alphabetical (A-Z), 2. Subject-wise Alphabetical (A-Z)
+      if (isA_AL && isB_AL) {
+        const streamA = getPaperStream(a) || "Other";
+        const streamB = getPaperStream(b) || "Other";
+        const streamCmp = streamA.localeCompare(streamB, undefined, { sensitivity: "base", numeric: true });
+        if (streamCmp !== 0) return streamCmp;
+
+        const subA = (a.subject || a.title || "").trim();
+        const subB = (b.subject || b.title || "").trim();
+        const subCmp = subA.localeCompare(subB, undefined, { sensitivity: "base", numeric: true });
+        if (subCmp !== 0) return subCmp;
+      }
+
+      // 2. When O/L, sort alphabetically (A-Z) by subject within the year
+      if (selectedCategory === "O/L" || (matchesLevel(a, "O/L") && matchesLevel(b, "O/L"))) {
+        const subA = (a.subject || a.title || "").trim();
+        const subB = (b.subject || b.title || "").trim();
+        const cmp = subA.localeCompare(subB, undefined, { sensitivity: "base", numeric: true });
+        if (cmp !== 0) return cmp;
+      }
+
       return new Date(b.created_at || 0) - new Date(a.created_at || 0);
     });
 
@@ -198,7 +713,7 @@ export default function PapersGallery({ initialPapers = [] }) {
       year,
       papers: grouped[year],
     }));
-  }, [filteredPapers]);
+  }, [visiblePapers, selectedCategory]);
 
   // Handle Download Click
   const handleDownloadClick = (paper) => {
@@ -281,51 +796,300 @@ export default function PapersGallery({ initialPapers = [] }) {
         <SearchBooksBackground />
 
         <div className="relative max-w-5xl mx-auto text-center z-10">
-          {/* Individual Category & Year Filter Chips (Pushed down comfortably) */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 max-w-5xl mx-auto px-2 pt-3 sm:pt-5">
-            {CATEGORIES.map((cat) => {
-              const isActive = selectedCategory === cat.id;
-              return (
+          {/* Unified 2-Tier Selection Capsule (Ultra-Premium Floating Glass Pedestal) */}
+          <div className="w-full max-w-full sm:w-auto inline-flex flex-col mx-auto p-1.5 sm:p-2 rounded-2xl sm:rounded-3xl bg-white/70 dark:bg-slate-900/55 backdrop-blur-2xl backdrop-saturate-150 border border-white/80 dark:border-white/10 shadow-xl shadow-slate-900/5 dark:shadow-black/60 relative mt-3 sm:mt-5 gap-1.5 sm:gap-2 transition-all duration-300">
+            {/* Subtle top inner glow rim */}
+            <div className="absolute top-0 inset-x-6 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
+
+            {/* Row 1: Exam Levels + Year Selector (Floating Segmented Capsule Track) */}
+            <div className="grid grid-cols-4 sm:flex sm:items-center gap-1 sm:gap-1.5 p-1 rounded-xl sm:rounded-2xl bg-slate-100/80 dark:bg-slate-950/50 border border-slate-200/60 dark:border-white/5 relative z-20">
+              {LEVEL_CATEGORIES.map((cat) => {
+                const isActive = selectedCategory === cat.id;
+
+                // Special handling for A/L to include Stream Dropdown
+                if (cat.id === "A/L") {
+                  const currentStreamObj = STREAM_OPTIONS.find((s) => s.value === selectedStream);
+                  const isStreamActive = selectedStream !== "All";
+
+                  return (
+                    <div key={cat.id} ref={alStreamDropdownRef} className="relative sm:flex-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory("A/L");
+                          setAlStreamDropdownOpen((prev) => !prev);
+                        }}
+                        className={`w-full h-full flex items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-center leading-tight sm:whitespace-nowrap ${
+                          isActive
+                            ? isStreamActive
+                              ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white font-black shadow-md shadow-purple-500/30 border border-white/20 scale-[1.01]"
+                              : "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white font-black shadow-md shadow-blue-500/25 border border-white/20 scale-[1.01]"
+                            : "text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-800/60 border border-transparent"
+                        }`}
+                      >
+                        <span className="truncate">
+                          <span className="hidden sm:inline whitespace-nowrap">
+                            {selectedStream === "All"
+                              ? cat.label
+                              : `A/L • ${currentStreamObj?.short || selectedStream}`}
+                          </span>
+                          <span className="sm:hidden font-extrabold whitespace-nowrap">
+                            {selectedStream === "All"
+                              ? cat.shortLabel
+                              : `A/L (${currentStreamObj?.badge || selectedStream})`}
+                          </span>
+                        </span>
+                        <svg
+                          className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                            alStreamDropdownOpen ? "rotate-180" : ""
+                          } ${isActive ? "text-white" : "text-slate-400 dark:text-slate-500"}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {/* A/L Stream Dropdown Menu (Floating Glass Popover) */}
+                      {alStreamDropdownOpen && (
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 min-w-[260px] sm:min-w-[300px] w-max max-w-xs sm:max-w-md z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
+                          <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-purple-400/40 to-transparent pointer-events-none" />
+
+                          <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between">
+                            <span>A/L විෂය ධාරාව (Stream)</span>
+                            {selectedStream !== "All" && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStream("All");
+                                }}
+                                className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer lowercase font-medium text-[10px]"
+                              >
+                                reset
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="max-h-64 overflow-y-auto space-y-1 p-0.5 custom-scrollbar mt-1">
+                            {STREAM_OPTIONS.map((str) => {
+                              const isSelected = selectedStream === str.value;
+                              return (
+                                <button
+                                  key={str.value}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCategory("A/L");
+                                    setSelectedStream(str.value);
+                                    setAlStreamDropdownOpen(false);
+                                  }}
+                                  className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-left select-none ${
+                                    isSelected
+                                      ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm shadow-purple-500/30 font-black"
+                                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/90 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 truncate min-w-0">
+                                    <span className="text-base shrink-0">{str.icon}</span>
+                                    <div className="truncate min-w-0">
+                                      <div className="truncate font-bold leading-tight">{str.label}</div>
+                                      <div
+                                        className={`text-[10px] leading-tight truncate ${
+                                          isSelected ? "text-purple-100" : "text-slate-400 dark:text-slate-500"
+                                        }`}
+                                      >
+                                        {str.sinhala}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {isSelected && (
+                                    <svg
+                                      className="w-3.5 h-3.5 shrink-0"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={3}
+                                        d="M5 13l4 4L19 7"
+                                      />
+                                    </svg>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => handleSelectCategory(cat.id)}
+                    className={`flex items-center justify-center gap-1 sm:gap-2 px-1.5 sm:px-5 py-2 sm:py-2.5 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-center leading-tight sm:whitespace-nowrap sm:flex-1 ${
+                      isActive
+                        ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white font-black shadow-md shadow-blue-500/25 border border-white/20 scale-[1.01]"
+                        : "text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-800/60 border border-transparent"
+                    }`}
+                  >
+                    <span className="hidden sm:inline whitespace-nowrap">{cat.label}</span>
+                    <span className="sm:hidden font-extrabold break-words">{cat.shortLabel}</span>
+                  </button>
+                );
+              })}
+
+              {/* Year Selector integrated as the 4th Pill in Row 1 */}
+              <div ref={yearDropdownRef} className="relative sm:flex-1">
                 <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 ${
-                    isActive
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 border border-blue-500 scale-102"
-                      : "bg-white/80 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs"
+                  type="button"
+                  onClick={() => setYearDropdownOpen((prev) => !prev)}
+                  className={`w-full h-full flex items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-center leading-tight sm:whitespace-nowrap ${
+                    selectedYear !== "All"
+                      ? "bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white font-black shadow-md shadow-cyan-500/25 border border-white/20 scale-[1.01]"
+                      : "text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-800/60 border border-transparent"
                   }`}
                 >
-                  <span className={`shrink-0 transition-colors ${isActive ? "text-white" : ""}`}>
-                    {cat.icon}
+                  <span className="truncate">
+                    <span className="hidden sm:inline whitespace-nowrap">
+                      {selectedYear === "All" ? "සියලුම වසර (All Years)" : `${selectedYear} විභාග`}
+                    </span>
+                    <span className="sm:hidden font-extrabold whitespace-nowrap">
+                      {selectedYear === "All" ? "All Years" : selectedYear}
+                    </span>
                   </span>
-                  <span>{cat.label}</span>
+                  <svg
+                    className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                      yearDropdownOpen ? "rotate-180" : ""
+                    } ${selectedYear !== "All" ? "text-white" : "text-slate-400 dark:text-slate-500"}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
-              );
-            })}
 
-            {/* Modern Calendar Year Selector Dropdown Chip */}
-            <PremiumSelect
-              value={selectedYear}
-              onChange={setSelectedYear}
-              options={availableYears.map((yr) => ({
-                value: yr,
-                label: yr === "All" ? "සියලුම වසර (All Years)" : `${yr} විභාග`,
-                badge: yr === "2026" ? "New" : undefined,
-              }))}
-              size="pill"
-              align="right"
-              className="shrink-0"
-              triggerClassName={
-                selectedYear !== "All"
-                  ? "!bg-blue-600 !text-white !border-blue-500 shadow-md shadow-blue-500/25"
-                  : ""
-              }
-              icon={
-                <svg className={`w-3.5 h-3.5 ${selectedYear !== "All" ? "text-white" : "text-cyan-600 dark:text-cyan-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              }
-            />
+                {/* Year Dropdown Menu (Floating Glass Popover) */}
+                {yearDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-2 min-w-[210px] w-max max-w-xs sm:max-w-sm z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
+                    <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
+
+                    <div className="max-h-60 overflow-y-auto space-y-1 p-0.5 custom-scrollbar">
+                      {availableYears.map((yr) => {
+                        const isSelected = selectedYear === yr;
+                        return (
+                          <button
+                            key={yr}
+                            type="button"
+                            onClick={() => {
+                              setSelectedYear(yr);
+                              setYearDropdownOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-left select-none ${
+                              isSelected
+                                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/30 font-black"
+                                : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/90 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate min-w-0">
+                              <span className="truncate">
+                                {yr === "All" ? "සියලුම වසර (All Years)" : `${yr} විභාග`}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {yr === "2026" && (
+                                <span
+                                  className={`px-1.5 py-0.2 rounded-md text-[10px] font-black ${
+                                    isSelected
+                                      ? "bg-white/20 text-white"
+                                      : "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300"
+                                  }`}
+                                >
+                                  New
+                                </span>
+                              )}
+                              {isSelected && (
+                                <svg
+                                  className="w-3.5 h-3.5 shrink-0"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={3}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Row 2: Paper Types (Past, Model, Provincial) (Floating Segmented Capsule Track) */}
+            <div className="grid grid-cols-3 sm:flex sm:items-center gap-1 sm:gap-1.5 p-1 rounded-xl sm:rounded-2xl bg-slate-100/80 dark:bg-slate-950/50 border border-slate-200/60 dark:border-white/5 relative z-10">
+              {PAPER_TYPES.map((type) => {
+                const isActive = selectedPaperType === type.id;
+                const count = typeCounts[type.id] || 0;
+
+                // Unique luminous gradient for each active paper type
+                const activeGradients = {
+                  Past: "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-md shadow-blue-500/25 border-white/20",
+                  Model: "bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 text-white shadow-md shadow-purple-500/25 border-white/20",
+                  Provincial: "bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 text-white shadow-md shadow-emerald-500/25 border-white/20",
+                };
+
+                const typeColors = {
+                  Past: "text-blue-500 dark:text-blue-400",
+                  Model: "text-purple-500 dark:text-purple-400",
+                  Provincial: "text-emerald-500 dark:text-emerald-400",
+                };
+
+                return (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setSelectedPaperType(type.id)}
+                    className={`flex items-center justify-center gap-1 sm:gap-2 px-1.5 sm:px-5 py-2 sm:py-2.5 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-center leading-tight sm:whitespace-nowrap sm:flex-1 border ${
+                      isActive
+                        ? `${activeGradients[type.id] || activeGradients.Past} font-black scale-[1.01]`
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-800/60 border-transparent"
+                    }`}
+                  >
+                    <span className={`shrink-0 transition-transform duration-200 ${isActive ? "text-white scale-110" : typeColors[type.id] || "text-blue-500"}`}>
+                      {type.icon}
+                    </span>
+                    <span className="hidden sm:inline whitespace-nowrap">{type.label}</span>
+                    <span className="sm:hidden font-extrabold break-words">{type.shortLabel}</span>
+                    <span
+                      className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[9.5px] sm:text-[10.5px] font-black shrink-0 transition-all ${
+                        isActive
+                          ? "bg-white/25 text-white shadow-2xs border border-white/30 backdrop-blur-xs"
+                          : "bg-slate-200/80 dark:bg-slate-800/90 text-slate-600 dark:text-slate-400 border border-slate-300/50 dark:border-white/5"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -398,25 +1162,49 @@ export default function PapersGallery({ initialPapers = [] }) {
 
                   {/* Cards Grid for this Year */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3.5 sm:gap-4">
-                    {group.papers.map((paper) => (
-                      <div
-                        key={paper.id || paper.file_url}
-                        className="group relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:border-blue-500/50 dark:hover:border-blue-500/50 shadow-xs hover:shadow-md hover:shadow-blue-500/5 hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-3.5 flex flex-col justify-between"
-                      >
-                        <div>
-                          {/* Top Bar: Category on Left, Year on Right */}
-                          <div className="flex items-center justify-between gap-1.5 mb-2">
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${getCategoryBadge(
-                                paper.category
-                              )}`}
-                            >
-                              {paper.category || "General"}
-                            </span>
-                            <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700/80 shrink-0">
-                              {paper.year}
-                            </span>
-                          </div>
+                    {group.papers.map((paper) => {
+                      const isAL =
+                        selectedCategory === "A/L" ||
+                        paper.category === "A/L" ||
+                        matchesLevel(paper, "A/L");
+                      const paperStream = isAL ? getPaperStream(paper) : null;
+                      const streamBadge = paperStream
+                        ? getStreamBadgeConfig(paperStream)
+                        : null;
+
+                      return (
+                        <div
+                          key={paper.id || paper.file_url}
+                          className="group relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:border-blue-500/50 dark:hover:border-blue-500/50 shadow-xs hover:shadow-md hover:shadow-blue-500/5 hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-3.5 flex flex-col justify-between"
+                        >
+                          <div>
+                            {/* Top Bar: Category on Left, Stream (for A/L), Year on Right */}
+                            <div className="flex items-center justify-between gap-1.5 mb-2">
+                              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${getCategoryBadge(
+                                    paper.category
+                                  )}`}
+                                >
+                                  {paper.category || "General"}
+                                </span>
+
+                                {/* Stream Badge for A/L papers */}
+                                {streamBadge && (
+                                  <span
+                                    className={`inline-flex items-center gap-1 text-[9.5px] font-extrabold px-2 py-0.5 rounded-md border shadow-2xs max-w-[145px] sm:max-w-none truncate ${streamBadge.className}`}
+                                    title={`විෂය ධාරාව: ${streamBadge.label} (${streamBadge.sinhala})`}
+                                  >
+                                    <span className="text-[10.5px] leading-none shrink-0">{streamBadge.icon}</span>
+                                    <span className="truncate">{streamBadge.label}</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700/80 shrink-0">
+                                {paper.year}
+                              </span>
+                            </div>
 
                           {/* Highlighted & Centered Subject Name */}
                           {paper.subject && (
@@ -491,11 +1279,28 @@ export default function PapersGallery({ initialPapers = [] }) {
                           </div>
                         </div>
                       </div>
-                    ))}
+                    );
+                  })}
                   </div>
                 </div>
               );
             })}
+
+            {/* Infinite Scroll Sentinel & Loader */}
+            {visibleCount < filteredPapers.length ? (
+              <div ref={loadMoreRef} className="py-8 flex flex-col items-center justify-center gap-2.5">
+                <div className="w-8 h-8 rounded-full border-3 border-blue-600 border-t-transparent animate-spin" />
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 animate-pulse">
+                  තවත් ප්‍රශ්න පත්‍ර පූරණය වෙමින් පවතී... (Loading more papers)
+                </p>
+              </div>
+            ) : filteredPapers.length > 15 ? (
+              <div className="py-8 text-center">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-xs font-semibold rounded-full border border-slate-200/80 dark:border-slate-700/80">
+                  <span>✨ සියලුම ප්‍රශ්න පත්‍ර පූරණය කර අවසන් (All {filteredPapers.length} papers loaded)</span>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : (
           /* Empty State */
@@ -512,8 +1317,10 @@ export default function PapersGallery({ initialPapers = [] }) {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={() => {
-                  setSelectedCategory("All");
+                  setSelectedCategory("O/L");
+                  setSelectedPaperType("Past");
                   setSelectedYear("All");
+                  setSelectedStream("All");
                   setSearchQuery("");
                 }}
                 className="text-xs font-bold px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition cursor-pointer"
@@ -542,6 +1349,18 @@ export default function PapersGallery({ initialPapers = [] }) {
             setFeedbackInitialSubject("");
             setFeedbackModalOpen(true);
           }}
+          onOpen={(tab) => {
+            setFeedbackInitialTab(tab || "request");
+            setFeedbackInitialSubject("");
+            setFeedbackModalOpen(true);
+          }}
+        />
+
+        {/* Floating In-App Return Visit Alert for Uploaded Requested Papers */}
+        <RequestedPaperAlert
+          papers={papers}
+          onViewPaper={(paper) => setViewingPaper(paper)}
+          onDownloadPaper={(paper) => handleDownloadClick(paper)}
         />
 
         {/* Paper Request & Feedback Modal */}

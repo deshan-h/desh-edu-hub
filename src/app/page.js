@@ -30,7 +30,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-between text-slate-800 dark:text-slate-100 transition-colors duration-300">
       {/* 1. Navbar with Brand, User Display & DarkMode Switch */}
-      <Navbar />
+      <Navbar papers={papers} />
 
       {/* 2. Main Area: Search Bar & Gallery */}
       <main className="flex-1">

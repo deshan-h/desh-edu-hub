@@ -2,6 +2,7 @@ import { Geist, Geist_Mono, Noto_Sans_Sinhala } from "next/font/google";
 import "./globals.css";
 import ThemeInitializer from "@/components/ThemeInitializer";
 import PWAInstaller from "@/components/PWAInstaller";
+import SiteVisitTracker from "@/components/SiteVisitTracker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,6 +60,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} ${notoSansSinhala.variable} min-h-full flex flex-col antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300`}
       >
         <ThemeInitializer />
+        <SiteVisitTracker />
         {children}
         <PWAInstaller />
       </body>

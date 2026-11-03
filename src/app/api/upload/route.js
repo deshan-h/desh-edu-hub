@@ -31,6 +31,7 @@ export async function POST(request) {
     const category = formData.get("category");
     const subject = formData.get("subject");
     const year = formData.get("year");
+    const stream = formData.get("stream");
     const hasAnswers =
       formData.get("has_answers") === "true" ||
       formData.get("with_answers") === "true";
@@ -280,20 +281,26 @@ export async function POST(request) {
       has_answers: hasAnswers,
     };
 
+    if (stream && stream.toString().trim()) {
+      insertPayload.stream = stream.toString().trim();
+    }
+
     let { data, error: dbError } = await supabase
       .from("papers")
       .insert([insertPayload])
       .select();
 
-    // Gracefully handle if 'has_answers' column doesn't exist yet in Supabase
+    // Gracefully handle if 'has_answers' or 'stream' column doesn't exist yet in Supabase
     if (
       dbError &&
       (dbError.message?.includes("has_answers") ||
+        dbError.message?.includes("stream") ||
         dbError.code === "PGRST204" ||
         dbError.code === "42703")
     ) {
-      console.warn("Column has_answers missing in Supabase, retrying without column...");
+      console.warn("Column has_answers or stream missing in Supabase, retrying without optional columns...");
       delete insertPayload.has_answers;
+      delete insertPayload.stream;
 
       const retryResult = await supabase
         .from("papers")
@@ -312,6 +319,38 @@ export async function POST(request) {
         },
         { status: 500 }
       );
+    }
+
+    // 8. Auto-mark matching pending student requests as 'uploaded'
+    try {
+      const cleanSub = subject.toString().trim().toLowerCase();
+      const cleanYr = year.toString().trim();
+
+      const { data: pendingReqs } = await supabase
+        .from("requests")
+        .select("id, subject, year, type, status")
+        .eq("status", "pending")
+        .eq("year", cleanYr);
+
+      if (pendingReqs && pendingReqs.length > 0) {
+        const matchingIds = pendingReqs
+          .filter((r) => {
+            if (!r.subject) return false;
+            const rSub = r.subject.toLowerCase().trim();
+            return cleanSub.includes(rSub) || rSub.includes(cleanSub);
+          })
+          .map((r) => r.id);
+
+        if (matchingIds.length > 0) {
+          await supabase
+            .from("requests")
+            .update({ status: "uploaded" })
+            .in("id", matchingIds);
+          console.log(`Auto-marked ${matchingIds.length} requests as uploaded.`);
+        }
+      }
+    } catch (reqAutoErr) {
+      console.warn("Could not auto-mark matching requests:", reqAutoErr.message);
     }
 
     return NextResponse.json(

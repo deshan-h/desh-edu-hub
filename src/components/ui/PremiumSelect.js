@@ -24,6 +24,7 @@ export default function PremiumSelect({
       return {
         value: opt.value !== undefined ? opt.value : opt.label ?? opt.name,
         label: opt.label !== undefined ? opt.label : opt.name ?? opt.value,
+        triggerLabel: opt.triggerLabel,
         badge: opt.badge,
         icon: opt.icon,
         disabled: Boolean(opt.disabled),
@@ -85,17 +86,17 @@ export default function PremiumSelect({
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className={`w-full flex items-center justify-between gap-2.5 transition-all duration-200 cursor-pointer select-none text-left focus:outline-none ${isPill
-            ? "px-3.5 py-1.5 sm:py-2 rounded-full text-xs font-bold"
+        className={`w-full flex items-center justify-between gap-1.5 sm:gap-2.5 transition-all duration-200 cursor-pointer select-none text-left focus:outline-none ${isPill
+            ? "px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-full text-xs font-bold"
             : isSmall
-              ? "px-3 py-1.5 rounded-xl text-xs font-bold"
-              : "px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold"
+              ? "px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold"
+              : "px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold"
           } ${isOpen
             ? "ring-2 ring-blue-500/30 border-blue-500 dark:border-blue-400 bg-white dark:bg-slate-900 shadow-lg shadow-blue-500/10"
             : "border border-slate-200/90 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/80 dark:hover:bg-slate-900/60 shadow-2xs"
           } ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${triggerClassName}`}
       >
-        <div className="flex items-center gap-2 truncate min-w-0 flex-1">
+        <div className="flex items-center gap-1 sm:gap-2 truncate min-w-0 flex-1">
           {icon && <span className="shrink-0">{icon}</span>}
           {selectedOption?.icon && (
             <span className="shrink-0">{selectedOption.icon}</span>
@@ -106,7 +107,7 @@ export default function PremiumSelect({
                 : "text-slate-400 dark:text-slate-500 font-medium"
               } ${triggerClassName.includes("text-white") ? "!text-white" : ""}`}
           >
-            {selectedOption ? selectedOption.label : placeholder}
+            {selectedOption ? (selectedOption.triggerLabel ?? selectedOption.label) : placeholder}
           </span>
           {selectedOption?.badge && (
             <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-black shrink-0 ${
@@ -129,7 +130,7 @@ export default function PremiumSelect({
               : "text-slate-400 dark:text-slate-500"
           }`}
         >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
           </svg>
         </div>

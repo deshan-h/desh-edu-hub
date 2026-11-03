@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { supabase } from "@/lib/supabase";
+import { getVisitStats } from "@/lib/visits";
 import AdminLogin from "@/components/admin/AdminLogin";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 
@@ -12,7 +13,7 @@ export const metadata = {
 
 async function getAdminData() {
   try {
-    const [papersRes, usersRes] = await Promise.all([
+    const [papersRes, usersRes, visitsData] = await Promise.all([
       supabase
         .from("papers")
         .select("*")
@@ -21,15 +22,17 @@ async function getAdminData() {
         .from("users")
         .select("*")
         .order("created_at", { ascending: false }),
+      getVisitStats(14).catch(() => null),
     ]);
 
     return {
       papers: papersRes.data || [],
       users: usersRes.data || [],
+      visits: visitsData || null,
     };
   } catch (err) {
     console.error("Error fetching admin data:", err);
-    return { papers: [], users: [] };
+    return { papers: [], users: [], visits: null };
   }
 }
 
@@ -46,7 +49,13 @@ export default async function AdminPage() {
     return <AdminLogin />;
   }
 
-  const { papers, users } = await getAdminData();
+  const { papers, users, visits } = await getAdminData();
 
-  return <AdminDashboard initialPapers={papers} initialUsers={users} />;
+  return (
+    <AdminDashboard
+      initialPapers={papers}
+      initialUsers={users}
+      initialVisits={visits}
+    />
+  );
 }

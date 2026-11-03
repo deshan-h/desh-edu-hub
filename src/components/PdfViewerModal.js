@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getPaperStream, getStreamBadgeConfig } from "./PapersGallery";
 
 export default function PdfViewerModal({ isOpen, onClose, paper, onDownload }) {
   const [loading, setLoading] = useState(true);
@@ -54,13 +55,31 @@ export default function PdfViewerModal({ isOpen, onClose, paper, onDownload }) {
               </svg>
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 flex-wrap">
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                   {paper.category || "General"}
                 </span>
                 <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                   {paper.year}
                 </span>
+                {(() => {
+                  const isAL =
+                    (paper.category || "").toLowerCase().includes("a/l") ||
+                    (paper.title || "").toLowerCase().includes("a/l") ||
+                    Boolean(paper.stream);
+                  const stream = isAL ? getPaperStream(paper) : null;
+                  const streamBadge = stream ? getStreamBadgeConfig(stream) : null;
+                  if (!streamBadge) return null;
+                  return (
+                    <span
+                      className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-md border shadow-2xs ${streamBadge.className}`}
+                      title={`විෂය ධාරාව: ${streamBadge.label} (${streamBadge.sinhala})`}
+                    >
+                      <span className="text-[10.5px] leading-none">{streamBadge.icon}</span>
+                      <span>{streamBadge.label}</span>
+                    </span>
+                  );
+                })()}
                 {paper.subject && (
                   <span className="hidden sm:inline-block text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
                     {paper.subject}

@@ -17,7 +17,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { id, title, category, subject, year, has_answers } = body;
+    const { id, title, category, subject, year, stream, has_answers } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -59,6 +59,7 @@ export async function POST(request) {
       subject: subject.toString().trim(),
       year: parseInt(year.toString(), 10),
       has_answers: has_answers === true,
+      ...(stream !== undefined ? { stream: stream ? stream.toString().trim() : null } : {}),
     };
 
     let { data, error: dbError } = await supabase
@@ -72,11 +73,13 @@ export async function POST(request) {
     if (
       dbError &&
       (dbError.message?.includes("has_answers") ||
+        dbError.message?.includes("stream") ||
         dbError.code === "PGRST204" ||
         dbError.code === "42703")
     ) {
       console.warn("Column has_answers missing in Supabase, retrying without column...");
       delete updatePayload.has_answers;
+      delete updatePayload.stream;
 
       const retryResult = await supabase
         .from("papers")

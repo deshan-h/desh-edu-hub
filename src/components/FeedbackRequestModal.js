@@ -158,6 +158,31 @@ export default function FeedbackRequestModal({
       localStorage.setItem("desh_user", JSON.stringify(userData));
       window.dispatchEvent(new Event("desh_user_updated"));
 
+      // 3. Save to desh_my_requests for return-visit in-app notifications
+      try {
+        if (activeTab === "request") {
+          const storedReqs = JSON.parse(localStorage.getItem("desh_my_requests") || "[]");
+          const reqRecord = {
+            id: result.data?.id || `req_${Date.now()}`,
+            type: "paper_request",
+            name: cleanName,
+            whatsapp: cleanWhatsapp,
+            category,
+            subject,
+            year: year ? year.toString() : "",
+            medium,
+            status: "pending",
+            submittedAt: new Date().toISOString(),
+          };
+          // Prepend new request
+          storedReqs.unshift(reqRecord);
+          localStorage.setItem("desh_my_requests", JSON.stringify(storedReqs));
+          window.dispatchEvent(new Event("desh_requests_updated"));
+        }
+      } catch (errReq) {
+        console.warn("Could not save to desh_my_requests:", errReq);
+      }
+
       setSubmittedData(payload);
       setSuccess(true);
     } catch (err) {

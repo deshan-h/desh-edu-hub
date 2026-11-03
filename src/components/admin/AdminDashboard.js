@@ -10,15 +10,15 @@ import PremiumSelect from "@/components/ui/PremiumSelect";
 const CATEGORIES = ["O/L", "A/L", "Grade 5", "Provincial", "Model"];
 
 const PROVINCES = [
+  "North Western Province",
+  "North Central Province",
   "Western Province",
   "Central Province",
   "Southern Province",
-  "North Western Province",
   "Sabaragamuwa Province",
   "Eastern Province",
   "Uva Province",
   "Northern Province",
-  "North Central Province",
 ];
 
 const getProvinceFromText = (txt) => {
@@ -27,7 +27,7 @@ const getProvinceFromText = (txt) => {
   for (const prov of PROVINCES) {
     const provLower = prov.toLowerCase();
     const short = provLower.replace(" province", "");
-    if (lower.includes(provLower) || lower.includes(short)) return provLower;
+    if (lower.includes(provLower) || lower.includes(short)) return prov;
   }
   return null;
 };
@@ -52,50 +52,98 @@ const PROVINCE_TERMS = [
 
 const MEDIUMS = ["Sinhala Medium", "English Medium", "Tamil Medium"];
 
+const AL_STREAMS = [
+  { value: "Physical Science", label: "Physical Science (Combined Maths / භෞතික විද්‍යා)", badge: "Maths" },
+  { value: "Biological Science", label: "Biological Science (Bio / ජීව විද්‍යා)", badge: "Bio" },
+  { value: "Commerce", label: "Commerce (වාණිජ අංශය)", badge: "Commerce" },
+  { value: "Arts", label: "Arts (කලා අංශය)", badge: "Arts" },
+  { value: "Technology", label: "Technology (තාක්ෂණවේදය)", badge: "Tech" },
+  { value: "Common General", label: "Common General (පොදු සාමාන්‍ය)", badge: "General" },
+  { value: "Other", label: "Other / Vocational (වෙනත්)", badge: "Other" },
+];
+
 const KNOWN_SUBJECTS = [
+  // Specific multi-word patterns FIRST so generic single-words don't prematurely swallow them
   { key: "Combined Mathematics", patterns: ["combined mathematics", "combined maths", "සංයුක්ත ගණිතය", "com maths"] },
-  { key: "Mathematics", patterns: ["mathematics", "maths", "math", "ගණිතය"] },
-  { key: "Science", patterns: ["science", "විද්‍යාව"] },
-  { key: "Physics", patterns: ["physics", "භෞතික විද්‍යාව", "භෞතික"] },
-  { key: "Chemistry", patterns: ["chemistry", "රසායන විද්‍යාව", "රසායන"] },
-  { key: "Biology", patterns: ["biology", "ජීව විද්‍යාව", "ජීව"] },
-  { key: "Agricultural Science", patterns: ["agricultural science", "agriculture", "කෘෂි විද්‍යාව", "කෘෂිකර්මය"] },
-  { key: "English Language", patterns: ["english language", "general english", "english", "ඉංග්‍රීසි"] },
-  { key: "Sinhala Language & Literature", patterns: ["sinhala language", "sinhala literature", "sinhala", "සිංහල සාහිත්‍යය", "සිංහල භාෂාව", "සිංහල"] },
-  { key: "Tamil Language", patterns: ["tamil language", "tamil", "දෙමළ"] },
-  { key: "History", patterns: ["history", "ඉතිහාසය"] },
-  { key: "Geography", patterns: ["geography", "භූගෝල විද්‍යාව", "භූගෝලය"] },
-  { key: "Civic Education", patterns: ["civic education", "civics", "පුරවැසි අධ්‍යාපනය", "පුරවැසි"] },
-  { key: "Political Science", patterns: ["political science", "දේශපාලන විද්‍යාව", "දේශපාලන"] },
-  { key: "Logic & Scientific Method", patterns: ["logic and scientific method", "logic", "තර්ක ශාස්ත්‍රය", "තර්කය"] },
-  { key: "Economics", patterns: ["economics", "econ", "ආර්ථික විද්‍යාව", "ආර්ථික"] },
-  { key: "Information & Communication Technology", patterns: ["information and communication technology", "information communication technology", "information technology", "ict", "it", "තොරතුරු තාක්ෂණය"] },
-  { key: "Business & Accounting Studies", patterns: ["business and accounting studies", "business & accounting studies", "commerce", "ව්‍යාපාර හා ගිණුම්කරණ අධ්‍යයනය", "වාණිජ"] },
-  { key: "Accounting", patterns: ["accounting", "acc", "ගිණුම්කරණය"] },
+  { key: "Political Science", patterns: ["political science", "දේශපාලන විද්‍යාව", "දේශපාලන", "pol sci", "pol-sci"] },
+  { key: "Science for Technology", patterns: ["science for technology", "science-for-technology", "sft", "තාක්ෂණවේදය සඳහා විද්‍යාව"] },
+  { key: "Agricultural Science", patterns: ["agricultural science", "agro technology", "agro-technology", "food technology", "agriculture", "කෘෂි විද්‍යාව", "කෘෂිකර්මය", "කෘෂි"] },
+  { key: "Bio Systems Technology", patterns: ["bio systems technology", "bio systems", "bst", "ජෛව පද්ධති තාක්ෂණවේදය", "ජෛව පද්ධති"] },
+  { key: "Engineering Technology", patterns: ["engineering technology", "engineering tech", "et", "ඉංජිනේරු තාක්ෂණවේදය", "ඉංජිනේරු"] },
+  { key: "Home Economics", patterns: ["home economics", "home-economics", "ගෘහ විද්‍යාව"] },
+  { key: "Business & Accounting Studies", patterns: ["business and accounting studies", "business & accounting studies", "business accounting studies", "business-accounting", "commerce", "ව්‍යාපාර හා ගිණුම්කරණ අධ්‍යයනය", "වාණිජ"] },
+  { key: "Accounting", patterns: ["accounting", "acc", "ගිණුම්කරණය", "ගිණුම්"] },
   { key: "Business Studies", patterns: ["business studies", "bs", "ව්‍යාපාර අධ්‍යයනය"] },
-  { key: "Buddhism", patterns: ["buddhism", "බුද්ධ ධර්මය", "බුදු දහම"] },
+  { key: "Economics", patterns: ["economics", "econ", "ආර්ථික විද්‍යාව", "ආර්ථික"] },
+  { key: "General Information Technology (GIT)", patterns: ["general information technology", "information technology git", "git", "general info tech"] },
+  { key: "Information & Communication Technology", patterns: ["information and communication technology", "information & communication technology", "information communication technology", "information technology", "ict", "it", "තොරතුරු තාක්ෂණය"] },
+  { key: "Appreciation of Sinhala Literary Texts", patterns: ["appreciation of sinhala literary texts", "appreciation of sinhala", "sinhala literary texts", "sinhala literature", "sinhala lit", "සිංහල සාහිත්‍යය", "සිංහල සාහිත්‍ය"] },
+  { key: "Appreciation of English Literary Texts", patterns: ["appreciation of english literary texts", "appreciation of english", "english literary texts", "english literature", "english lit", "ඉංග්‍රීසි සාහිත්‍යය"] },
+  { key: "Sinhala Language & Literature", patterns: ["sinhala language and literature", "sinhala language", "sinhala", "සිංහල භාෂාව", "සිංහල"] },
+  { key: "English Language", patterns: ["english language", "general english", "english", "ඉංග්‍රීසි භාෂාව", "ඉංග්‍රීසි"] },
+  { key: "Tamil Language", patterns: ["tamil language", "tamil", "දෙමළ"] },
   { key: "Buddhist Civilization", patterns: ["buddhist civilization", "බෞද්ධ ශිෂ්ටාචාරය"] },
+  { key: "Buddhism", patterns: ["buddhism", "බුද්ධ ධර්මය", "බුදු දහම"] },
+  { key: "Christian Civilization", patterns: ["christian civilization", "ක්‍රිස්තියානි ශිෂ්ටාචාරය"] },
   { key: "Christianity", patterns: ["christianity", "ක්‍රිස්තියානි ධර්මය", "ක්‍රිස්තු ධර්මය"] },
   { key: "Islam", patterns: ["islam", "ඉස්ලාම් ධර්මය"] },
   { key: "Hinduism", patterns: ["hinduism", "හින්දු ධර්මය"] },
-  { key: "Health & Physical Education", patterns: ["health and physical education", "health & physical education", "health", "සෞඛ්‍යය"] },
-  { key: "Art", patterns: ["art", "චිත්‍ර කලාව", "චිත්‍ර"] },
-  { key: "Music", patterns: ["oriental music", "western music", "carnatic music", "music", "සංගීතය"] },
-  { key: "Dancing", patterns: ["dancing", "නර්තනය"] },
-  { key: "Drama & Theatre", patterns: ["drama and theatre", "drama & theatre", "drama", "නාට්‍ය හා රංග කලාව"] },
-  { key: "Design & Technology", patterns: ["design and technology", "design & technology", "තාක්ෂණවේදය"] },
-  { key: "Engineering Technology", patterns: ["engineering technology", "et", "ඉංජිනේරු තාක්ෂණවේදය"] },
-  { key: "Bio Systems Technology", patterns: ["bio systems technology", "bst", "ජෛව පද්ධති තාක්ෂණවේදය"] },
-  { key: "Science for Technology", patterns: ["science for technology", "sft", "තාක්ෂණවේදය සඳහා විද්‍යාව"] },
-  { key: "Communication & Media Studies", patterns: ["communication and media studies", "communication & media studies", "media", "සන්නිවේදනය හා මාධ්‍ය අධ්‍යයනය"] },
-  { key: "Home Economics", patterns: ["home economics", "ගෘහ විද්‍යාව"] },
+  { key: "Communication & Media Studies", patterns: ["communication and media studies", "communication & media studies", "communication media studies", "media studies", "media", "සන්නිවේදනය හා මාධ්‍ය අධ්‍යයනය", "සන්නිවේදන"] },
+  { key: "Drama & Theatre", patterns: ["drama and theatre", "drama & theatre", "drama theatre", "drama", "නාට්‍ය හා රංග කලාව", "නාට්‍ය"] },
+  { key: "Oriental Music", patterns: ["oriental music", "දේශීය සංගීතය"] },
+  { key: "Western Music", patterns: ["western music", "බටහිර සංගීතය"] },
+  { key: "Carnatic Music", patterns: ["carnatic music", "කර්නාටක සංගීතය"] },
+  { key: "Music", patterns: ["music", "සංගීතය"] },
+  { key: "Art", patterns: ["art", "arts", "චිත්‍ර කලාව", "චිත්‍ර"] },
+  { key: "Dancing", patterns: ["dancing", "dance", "නර්තනය", "නර්තන"] },
+  { key: "Health & Physical Education", patterns: ["health and physical education", "health & physical education", "health physical", "health science", "health", "සෞඛ්‍යය"] },
+  { key: "Logic & Scientific Method", patterns: ["logic and scientific method", "logic & scientific method", "logic", "තර්ක ශාස්ත්‍රය", "තර්කය"] },
+  { key: "Geography", patterns: ["geography", "භූගෝල විද්‍යාව", "භූගෝලය"] },
+  { key: "Civic Education", patterns: ["civic education", "civics", "පුරවැසි අධ්‍යාපනය", "පුරවැසි"] },
+  { key: "History", patterns: ["history", "ඉතිහාසය", "ඉතිහාස"] },
+  { key: "Physics", patterns: ["physics", "භෞතික විද්‍යාව", "භෞතික"] },
+  { key: "Chemistry", patterns: ["chemistry", "රසායන විද්‍යාව", "රසායන"] },
+  { key: "Biology", patterns: ["biology", "bio", "ජීව විද්‍යාව", "ජීව"] },
+  { key: "Mathematics", patterns: ["mathematics", "maths", "math", "ගණිතය"] },
+  { key: "Science", patterns: ["science", "විද්‍යාව"] },
+  { key: "General Knowledge", patterns: ["general knowledge", "common general test", "general test", "common general", "පොදු සාමාන්‍ය පරීක්ෂණය", "සාමාන්‍ය දැනීම"] },
+  { key: "Scholarship", patterns: ["scholarship", "grade 5 scholarship", "shishshathwa", "ශිෂ්‍යත්වය", "ශිෂ්‍යත්ව"] },
 ];
 
-export default function AdminDashboard({ initialPapers = [], initialUsers = [] }) {
+export default function AdminDashboard({ initialPapers = [], initialUsers = [], initialVisits = null }) {
   // Navigation State
   const [activeTab, setActiveTab] = useState("dashboard"); // "dashboard" | "repository" | "add-paper" | "students" | "requests"
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Site Visits & Daily Traffic Analytics State
+  const [visitsData, setVisitsData] = useState(initialVisits);
+  const [visitsDays, setVisitsDays] = useState(14); // 7 | 14 | 30
+  const [isLoadingVisits, setIsLoadingVisits] = useState(false);
+  const [showSqlModal, setShowSqlModal] = useState(false);
+  const [sqlCopied, setSqlCopied] = useState(false);
+
+  // Fetch / refresh site visit stats
+  const handleFetchVisits = async (days = visitsDays) => {
+    setIsLoadingVisits(true);
+    try {
+      const res = await fetch(`/api/visits?days=${days}`);
+      const data = await res.json();
+      if (data.success && data.stats) {
+        setVisitsData(data.stats);
+      }
+    } catch (e) {
+      console.warn("Failed to fetch visit stats:", e);
+    } finally {
+      setIsLoadingVisits(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!initialVisits) {
+      handleFetchVisits(14);
+    }
+  }, []);
 
   // Paper Requests & Feedback State
   const [requests, setRequests] = useState([]);
@@ -112,6 +160,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
   const [provinceTerm, setProvinceTerm] = useState("3rd Term Test");
   const [provinceGrade, setProvinceGrade] = useState("Grade 11 (O/L)");
   const [medium, setMedium] = useState("Sinhala Medium");
+  const [alStream, setAlStream] = useState("Physical Science");
   const [hasAnswers, setHasAnswers] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false); // Batch upload: Freeze Year, Level & Medium
   const [isDraggingOverForm, setIsDraggingOverForm] = useState(false);
@@ -121,6 +170,19 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
   // Data State
   const [papers, setPapers] = useState(initialPapers);
   const [users] = useState(initialUsers);
+
+  // Student Search Filter State
+  const [studentSearch, setStudentSearch] = useState("");
+
+  const filteredUsers = useMemo(() => {
+    if (!studentSearch.trim()) return users;
+    const q = studentSearch.toLowerCase().trim();
+    return users.filter((u) => {
+      const name = (u.name || u.full_name || "").toLowerCase();
+      const phone = (u.whatsapp_number || u.phone || u.whatsapp || "").toLowerCase();
+      return name.includes(q) || phone.includes(q);
+    });
+  }, [users, studentSearch]);
 
   // Background Upload Queue State
   const [uploadQueue, setUploadQueue] = useState([]);
@@ -231,6 +293,9 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
         formPayload.append("category", item.category);
         formPayload.append("subject", item.subject);
         formPayload.append("year", item.year.toString());
+        if (item.stream) {
+          formPayload.append("stream", item.stream);
+        }
         formPayload.append("has_answers", item.has_answers ? "true" : "false");
 
         updateItem({
@@ -319,6 +384,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
       category: paper.category || "O/L",
       subject: paper.subject || "",
       year: paper.year?.toString() || "",
+      stream: paper.stream || "Physical Science",
       has_answers: isAnswers,
     });
   };
@@ -395,6 +461,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
           category: editFormData.category,
           subject: editFormData.subject.trim(),
           year: editFormData.year,
+          stream: editFormData.category === "A/L" ? editFormData.stream : null,
           has_answers: editFormData.has_answers,
         }),
       });
@@ -635,6 +702,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
     const cleanName = fileName.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
     const lower = cleanName.toLowerCase();
     const details = {
+      subTab: null,
       subject: null,
       year: null,
       medium: null,
@@ -659,38 +727,22 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
     }
 
     // 2. Detect 4-digit Year (1990 - 2099)
-    const yearMatch = cleanName.match(/\b(19\d\d|20\d\d)\b/);
+    const yearMatch = cleanName.match(/\b(19\d\d|20\d\d)\b/) || cleanName.match(/(19\d\d|20\d\d)/);
     if (yearMatch) {
       details.year = yearMatch[1];
     }
 
-    // 3. Detect Medium
-    if (lower.includes("english medium") || lower.includes("english") || lower.includes("em") || lower.includes("eng")) {
-      if (!lower.includes("general english") && !lower.includes("english language") && !lower.includes("english literature")) {
-        details.medium = "English Medium";
-      }
-    }
-    if (lower.includes("tamil medium") || lower.includes("tamil") || lower.includes("tm")) {
-      if (!lower.includes("tamil language")) {
-        details.medium = "Tamil Medium";
-      }
-    }
-    if (lower.includes("sinhala medium") || lower.includes("sinhala") || lower.includes("sm") || lower.includes("සිංහල")) {
-      if (!lower.includes("sinhala language") && !lower.includes("sinhala literature")) {
-        details.medium = "Sinhala Medium";
-      }
-    }
-
-    // 4. Detect Exam Level
-    if (lower.includes("a/l") || lower.includes("al") || lower.includes("advanced level") || lower.includes("උසස් පෙළ")) {
-      details.level = "A/L";
-    } else if (lower.includes("o/l") || lower.includes("ol") || lower.includes("ordinary level") || lower.includes("සාමාන්‍ය පෙළ")) {
-      details.level = "O/L";
-    } else if (lower.includes("grade 5") || lower.includes("scholarship") || lower.includes("ශිෂ්‍යත්ව")) {
+    // 3. Detect Exam Level (using strict word boundaries)
+    if (/\b(grade\s*5|gr\s*5|scholarship|shishshathwa|shishyathwa|ශිෂ්‍යත්ව)\b/i.test(cleanName)) {
       details.level = "Grade 5";
+      details.subject = "Scholarship";
+    } else if (/\b(a\/l|al|advanced\s*level|advance\s*level|උසස්\s*පෙළ)\b/i.test(cleanName)) {
+      details.level = "A/L";
+    } else if (/\b(o\/l|ol|ordinary\s*level|සාමාන්‍ය\s*පෙළ)\b/i.test(cleanName)) {
+      details.level = "O/L";
     }
 
-    // 5. Detect Province
+    // 4. Detect Province
     for (const p of PROVINCES) {
       const pLower = p.toLowerCase();
       const pShort = pLower.replace(" province", "");
@@ -699,37 +751,83 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
         break;
       }
     }
+    // Province abbreviations
+    if (!details.province) {
+      if (/\b(wayamba|nwp)\b/i.test(cleanName)) details.province = "North Western Province";
+      else if (/\b(ncp)\b/i.test(cleanName)) details.province = "North Central Province";
+      else if (/\b(wp)\b/i.test(cleanName)) details.province = "Western Province";
+      else if (/\b(cp)\b/i.test(cleanName)) details.province = "Central Province";
+      else if (/\b(sp)\b/i.test(cleanName)) details.province = "Southern Province";
+      else if (/\b(sab|sabaragamuwa)\b/i.test(cleanName)) details.province = "Sabaragamuwa Province";
+      else if (/\b(ep)\b/i.test(cleanName)) details.province = "Eastern Province";
+      else if (/\b(np)\b/i.test(cleanName)) details.province = "Northern Province";
+      else if (/\b(uva)\b/i.test(cleanName)) details.province = "Uva Province";
+    }
 
-    // 6. Detect Term
-    if (lower.includes("pre test") || lower.includes("pre-test") || lower.includes("pretest")) {
+    // 5. Detect Term
+    if (/\b(pre\s*test|pre-test|pretest|pre\s*board)\b/i.test(cleanName)) {
       details.term = "Pre Test";
-    } else if (lower.includes("1st term") || lower.includes("first term") || lower.includes("1 term") || lower.includes("term 1")) {
+    } else if (/\b(1st\s*term|first\s*term|term\s*1|1-term|පළමු\s*වාර)\b/i.test(cleanName)) {
       details.term = "1st Term Test";
-    } else if (lower.includes("2nd term") || lower.includes("second term") || lower.includes("2 term") || lower.includes("term 2")) {
+    } else if (/\b(2nd\s*term|second\s*term|term\s*2|2-term|දෙවන\s*වාර|mid\s*year)\b/i.test(cleanName)) {
       details.term = "2nd Term Test";
-    } else if (lower.includes("3rd term") || lower.includes("third term") || lower.includes("3 term") || lower.includes("term 3")) {
+    } else if (/\b(3rd\s*term|third\s*term|term\s*3|3-term|තෙවන\s*වාර|year\s*end|end\s*year|final\s*term)\b/i.test(cleanName)) {
       details.term = "3rd Term Test";
     }
 
-    // 7. Detect Grade
-    for (const g of PROVINCE_GRADES) {
-      const gNum = g.match(/Grade\s*(\d+)/i);
-      if (gNum && lower.includes(`grade ${gNum[1]}`)) {
-        details.provinceGrade = g;
-        break;
+    // 6. Detect Provincial Grade
+    if (/\b(grade\s*11|gr\s*11|11\s*wasara)\b/i.test(cleanName)) {
+      details.provinceGrade = "Grade 11 (O/L)";
+    } else if (/\b(grade\s*12|grade\s*13|gr\s*12|gr\s*13|12\s*wasara|13\s*wasara)\b/i.test(cleanName)) {
+      details.provinceGrade = "Grade 12/13 (A/L)";
+    } else if (/\b(grade\s*10|gr\s*10|10\s*wasara)\b/i.test(cleanName)) {
+      details.provinceGrade = "Grade 10";
+    } else if (/\b(grade\s*9|gr\s*9|9\s*wasara)\b/i.test(cleanName)) {
+      details.provinceGrade = "Grade 9";
+    } else if (/\b(grade\s*8|gr\s*8|8\s*wasara)\b/i.test(cleanName)) {
+      details.provinceGrade = "Grade 8";
+    } else if (/\b(grade\s*7|gr\s*7|7\s*wasara)\b/i.test(cleanName)) {
+      details.provinceGrade = "Grade 7";
+    } else if (/\b(grade\s*6|gr\s*6|6\s*wasara)\b/i.test(cleanName)) {
+      details.provinceGrade = "Grade 6";
+    } else if (/\b(grade\s*5|gr\s*5|5\s*wasara)\b/i.test(cleanName)) {
+      details.provinceGrade = "Grade 5";
+    }
+
+    // 7. Auto-detect Sub-Tab (province, model, or passpaper)
+    if (details.province || details.term) {
+      details.subTab = "province";
+    } else if (/\b(model|adarsha|ආදර්ශ|pilot)\b/i.test(cleanName)) {
+      details.subTab = "model";
+    } else {
+      details.subTab = "passpaper";
+    }
+
+    // 8. Detect Subject (if not already set e.g. for Grade 5)
+    if (!details.subject) {
+      for (const subj of KNOWN_SUBJECTS) {
+        for (const pat of subj.patterns) {
+          const regex = new RegExp(`\\b${pat.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`, "i");
+          if (regex.test(cleanName)) {
+            details.subject = subj.key;
+            break;
+          }
+        }
+        if (details.subject) break;
       }
     }
 
-    // 8. Detect Subject
-    for (const subj of KNOWN_SUBJECTS) {
-      for (const pat of subj.patterns) {
-        const regex = new RegExp(`\\b${pat.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`, "i");
-        if (regex.test(cleanName)) {
-          details.subject = subj.key;
-          break;
-        }
-      }
-      if (details.subject) break;
+    // 9. Detect Medium (ensure medium indicator is not part of subject name)
+    const isEnglishSubj = details.subject === "English Language" || details.subject === "Appreciation of English Literary Texts";
+    const isSinhalaSubj = details.subject === "Sinhala Language & Literature" || details.subject === "Appreciation of Sinhala Literary Texts";
+    const isTamilSubj = details.subject === "Tamil Language";
+
+    if (/\b(english\s*medium|english-medium|ඉංග්‍රීසි\s*මාධ්‍ය)\b/i.test(cleanName) || (!isEnglishSubj && /\b(english|em|eng)\b/i.test(cleanName))) {
+      details.medium = "English Medium";
+    } else if (/\b(tamil\s*medium|tamil-medium|දෙමළ\s*මාධ්‍ය)\b/i.test(cleanName) || (!isTamilSubj && /\b(tamil|tm)\b/i.test(cleanName))) {
+      details.medium = "Tamil Medium";
+    } else if (/\b(sinhala\s*medium|sinhala-medium|සිංහල\s*මාධ්‍ය)\b/i.test(cleanName) || (!isSinhalaSubj && /\b(sinhala|sm|සිංහල)\b/i.test(cleanName))) {
+      details.medium = "Sinhala Medium";
     }
 
     return details;
@@ -741,39 +839,85 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
 
     const detected = [];
 
-    if (details.subject && (!formData.subject || !isFrozen)) {
+    // 1. Auto-switch SubTab
+    if (details.subTab) {
+      setPaperSubTab(details.subTab);
+      detected.push(`Tab: ${details.subTab === "passpaper" ? "Past Papers" : details.subTab === "model" ? "Model Papers" : "Provincial"}`);
+    }
+
+    // 2. Set Target Level
+    if (details.level) {
+      if (details.subTab === "model" || paperSubTab === "model") {
+        setModelLevel(details.level);
+        detected.push(`Level: ${details.level}`);
+      } else {
+        setPasspaperLevel(details.level);
+        detected.push(`Level: ${details.level}`);
+      }
+    }
+
+    // 3. Set Subject
+    if (details.level === "Grade 5") {
+      setFormData((prev) => ({ ...prev, subject: "Scholarship" }));
+      detected.push("Subject: Scholarship (Auto)");
+    } else if (details.subject && (!formData.subject || !isFrozen)) {
       setFormData((prev) => ({ ...prev, subject: details.subject }));
       detected.push(`Subject: ${details.subject}`);
     }
 
+    // 4. Set Year
     if (details.year && (!isFrozen || !formData.year)) {
       setFormData((prev) => ({ ...prev, year: details.year }));
       detected.push(`Year: ${details.year}`);
     }
 
+    // 5. Set Answers
     if (details.hasAnswers !== undefined) {
       setHasAnswers(details.hasAnswers);
       detected.push(`Answers: ${details.hasAnswers ? "Yes" : "No"}`);
     }
 
+    // 6. Set Medium
     if (details.medium && !isFrozen) {
       setMedium(details.medium);
       detected.push(`Medium: ${details.medium}`);
     }
 
+    // 7. Set Province, Grade & Term
     if (details.province) {
-      setPaperSubTab("province");
       setProvince(details.province);
       detected.push(`Province: ${details.province}`);
-      if (details.provinceGrade) setProvinceGrade(details.provinceGrade);
-      if (details.term) setProvinceTerm(details.term);
-    } else if (details.level) {
-      if (paperSubTab === "passpaper") {
-        setPasspaperLevel(details.level);
-        detected.push(`Level: ${details.level}`);
-      } else if (paperSubTab === "model") {
-        setModelLevel(details.level);
-        detected.push(`Level: ${details.level}`);
+    }
+    if (details.provinceGrade) {
+      setProvinceGrade(details.provinceGrade);
+      detected.push(`Grade: ${details.provinceGrade}`);
+    }
+    if (details.term) {
+      setProvinceTerm(details.term);
+      detected.push(`Term: ${details.term}`);
+    }
+
+    // 8. Auto-detect A/L Stream
+    if ((details.level === "A/L" || (details.provinceGrade && details.provinceGrade.includes("A/L"))) && details.subject) {
+      const sLower = details.subject.toLowerCase();
+      if (sLower.includes("math") || sLower.includes("physics")) {
+        setAlStream("Physical Science");
+        detected.push("Stream: Physical Science");
+      } else if (sLower.includes("bio") || sLower.includes("chemistry") || sLower.includes("agri")) {
+        setAlStream("Biological Science");
+        detected.push("Stream: Biological Science");
+      } else if (sLower.includes("account") || sLower.includes("business") || sLower.includes("economic")) {
+        setAlStream("Commerce");
+        detected.push("Stream: Commerce");
+      } else if (sLower.includes("tech") || sLower.includes("sft") || sLower.includes("et") || sLower.includes("bst") || sLower.includes("engineering")) {
+        setAlStream("Technology");
+        detected.push("Stream: Technology");
+      } else if (sLower.includes("art") || sLower.includes("logic") || sLower.includes("history") || sLower.includes("polit") || sLower.includes("buddhist civ") || sLower.includes("music") || sLower.includes("drama") || sLower.includes("geograph") || sLower.includes("dancing")) {
+        setAlStream("Arts");
+        detected.push("Stream: Arts");
+      } else if (sLower.includes("general") || sLower.includes("git")) {
+        setAlStream("Common General");
+        detected.push("Stream: Common General");
       }
     }
 
@@ -840,29 +984,35 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
   };
 
   const generatePaperTitle = () => {
-    const subj = formData.subject.trim() || "Subject";
+    const isGrade5 =
+      (paperSubTab === "passpaper" && passpaperLevel === "Grade 5") ||
+      (paperSubTab === "model" && modelLevel === "Grade 5");
+
+    const effectiveSubj = isGrade5 ? "Scholarship" : (formData.subject.trim() || "Subject");
     const yr = formData.year?.toString().trim() || new Date().getFullYear().toString();
 
     if (paperSubTab === "passpaper") {
+      if (passpaperLevel === "Grade 5") {
+        return `${yr} Grade 5 Scholarship Past Paper (${medium})`;
+      }
       const levelLabel =
         passpaperLevel === "O/L"
           ? "G.C.E. O/L"
-          : passpaperLevel === "A/L"
-          ? "G.C.E. A/L"
-          : "Grade 5 Scholarship";
-      return `${yr} ${levelLabel} ${subj} Past Paper (${medium})`;
+          : "G.C.E. A/L";
+      return `${yr} ${levelLabel} ${effectiveSubj} Past Paper (${medium})`;
     } else if (paperSubTab === "model") {
+      if (modelLevel === "Grade 5") {
+        return `${yr} Grade 5 Scholarship Model Paper (${medium})`;
+      }
       const levelLabel =
         modelLevel === "General"
           ? ""
-          : modelLevel === "Grade 5"
-          ? "Grade 5"
           : `G.C.E. ${modelLevel}`;
-      return `${yr} ${levelLabel ? levelLabel + " " : ""}${subj} Model Paper (${medium})`;
+      return `${yr} ${levelLabel ? levelLabel + " " : ""}${effectiveSubj} Model Paper (${medium})`;
     } else if (paperSubTab === "province") {
-      return `${yr} ${province} ${provinceGrade} ${subj} ${provinceTerm} (${medium})`;
+      return `${yr} ${province} ${provinceGrade} ${effectiveSubj} ${provinceTerm} (${medium})`;
     }
-    return `${yr} ${subj} Past Paper`;
+    return `${yr} ${effectiveSubj} Past Paper`;
   };
 
   const checkDuplicatePaper = (title, category, subject, year, hasAns) => {
@@ -911,12 +1061,17 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
   };
 
   const duplicateCheck = useMemo(() => {
+    const isGrade5 =
+      (paperSubTab === "passpaper" && passpaperLevel === "Grade 5") ||
+      (paperSubTab === "model" && modelLevel === "Grade 5");
+    const effectiveSubject = isGrade5 ? "Scholarship" : formData.subject;
+
     const finalTitle = generatePaperTitle();
     const finalCategory = getComputedCategory();
     return checkDuplicatePaper(
       finalTitle,
       finalCategory,
-      formData.subject,
+      effectiveSubject,
       formData.year,
       hasAnswers
     );
@@ -990,7 +1145,13 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
   const handleUploadSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.subject.trim()) {
+    const isGrade5 =
+      (paperSubTab === "passpaper" && passpaperLevel === "Grade 5") ||
+      (paperSubTab === "model" && modelLevel === "Grade 5");
+
+    const effectiveSubject = isGrade5 ? "Scholarship" : formData.subject.trim();
+
+    if (!isGrade5 && !effectiveSubject) {
       showToast({
         type: "error",
         title: "Missing Subject",
@@ -1030,13 +1191,19 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
       return;
     }
 
+    const isAL =
+      (paperSubTab === "passpaper" && passpaperLevel === "A/L") ||
+      (paperSubTab === "model" && modelLevel === "A/L") ||
+      (paperSubTab === "province" && provinceGrade.includes("A/L"));
+
     const queuedItem = {
       id: `queue-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
       file,
       title: finalTitle,
       category: finalCategory,
-      subject: formData.subject.trim(),
+      subject: effectiveSubject,
       year: formData.year.toString().trim(),
+      stream: isAL ? alStream : null,
       has_answers: hasAnswers,
       status: "queued",
       stepLabel: "In Queue...",
@@ -1714,8 +1881,8 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
               </div>
             </div>
 
-            {/* Metric Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            {/* Metric Cards Grid (5-Column Responsive) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
               <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -1773,6 +1940,29 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                 </div>
               </div>
 
+              {/* Card 4: Today's Site Visits */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Today's Visits
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
+                    {visitsData?.today ?? 0}
+                  </p>
+                  <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-bold mt-1 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+                    <span>Live Traffic</span>
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-900/60 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Card 5: Upload Queue */}
               <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -1782,7 +1972,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                     {activeUploadsCount}
                   </p>
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-1">
-                    {activeUploadsCount > 0 ? "Uploading in Background" : "All Tasks Finished"}
+                    {activeUploadsCount > 0 ? "Uploading" : "All Finished"}
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
@@ -1791,6 +1981,293 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                   </svg>
                 </div>
               </div>
+            </div>
+
+            {/* ================= ULTRA-PREMIUM SITE TRAFFIC & DAILY VISITS WIDGET ================= */}
+            <div className="p-5 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6 relative overflow-hidden">
+              {/* Subtle top inner glow rim */}
+              <div className="absolute top-0 inset-x-6 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent pointer-events-none" />
+
+              {/* Header with Title & Action Controls */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-800/80">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse" />
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                      Site Traffic & Daily Visitors (දිනපතා වෙබ් අඩවි පිවිසුම්)
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    දිනෙන් දින site එකට පැමිණි පරිශීලකයින් සංඛ්‍යාව සහ දෛනික වර්ධන ප්‍රවණතාව (Daily Visit Volume)
+                  </p>
+                </div>
+
+                {/* Controls: Days Filter, Refresh & SQL Setup */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Days Filter Pills */}
+                  <div className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-1">
+                    {[7, 14, 30].map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => {
+                          setVisitsDays(d);
+                          handleFetchVisits(d);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          visitsDays === d
+                            ? "bg-blue-600 text-white shadow-xs font-black"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                        }`}
+                      >
+                        {d} Days
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Refresh Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleFetchVisits(visitsDays)}
+                    disabled={isLoadingVisits}
+                    className="h-8 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="Refresh Traffic Data"
+                  >
+                    <svg
+                      className={`w-3.5 h-3.5 ${isLoadingVisits ? "animate-spin text-blue-600" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span className="hidden sm:inline">Refresh</span>
+                  </button>
+
+                  {/* Supabase SQL Setup Helper Modal Trigger */}
+                  <button
+                    type="button"
+                    onClick={() => setShowSqlModal(true)}
+                    className="h-8 px-2.5 rounded-xl bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200/80 dark:border-cyan-800/60 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                    title="Supabase site_visits table configuration"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>SQL Setup</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Traffic Summary Metrics Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                {/* 1. Today */}
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">අද දිනය (Today)</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                    {visitsData?.today ?? 0}
+                  </p>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                    Daily Visitors
+                  </p>
+                </div>
+
+                {/* 2. Yesterday */}
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 space-y-1">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">ඊයේ (Yesterday)</span>
+                  <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                    {visitsData?.yesterday ?? 0}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-bold">
+                    Previous Day Total
+                  </p>
+                </div>
+
+                {/* 3. Daily Average */}
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 space-y-1">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">දෛනික සාමාන්‍යය (Avg)</span>
+                  <p className="text-xl sm:text-2xl font-black text-blue-600 dark:text-cyan-400">
+                    {visitsData?.dailyAverage ?? 0}
+                  </p>
+                  <p className="text-[10px] text-blue-500 dark:text-blue-400 font-bold">
+                    Per Day (Last {visitsDays}d)
+                  </p>
+                </div>
+
+                {/* 4. Peak Day */}
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 space-y-1">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">වැඩිම පැමිණීම (Peak)</span>
+                  <p className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 truncate">
+                    {visitsData?.peakDay?.count ?? 0}
+                  </p>
+                  <p className="text-[10px] text-purple-500 dark:text-purple-400 font-bold truncate">
+                    {visitsData?.peakDay?.label || "No records"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Visual Day-by-Day Bar Chart */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-700 dark:text-slate-300">
+                    දිනෙන් දින ප්‍රස්තාරය (Day-by-Day Volume)
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    පසුගිය දින {visitsDays} තුළ
+                  </span>
+                </div>
+
+                {(!visitsData?.daily || visitsData.daily.length === 0) ? (
+                  <div className="p-10 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200/60 dark:border-white/5">
+                    තවමත් පැමිණීම් වාර්තා වී නොමැත. (No site visits recorded yet)
+                  </div>
+                ) : (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-950/50 border border-slate-200/70 dark:border-white/5">
+                    {(() => {
+                      const maxDaily = Math.max(...visitsData.daily.map((d) => d.count), 1);
+                      return (
+                        <div className="flex items-end justify-between gap-1.5 sm:gap-2.5 h-44 sm:h-52 pt-6 pb-2 overflow-x-auto custom-scrollbar">
+                          {visitsData.daily.map((day) => {
+                            const barHeight = Math.max(10, Math.round((day.count / maxDaily) * 100));
+                            return (
+                              <div
+                                key={day.date}
+                                className="flex-1 min-w-[28px] sm:min-w-[36px] max-w-[56px] flex flex-col items-center gap-1.5 group h-full justify-end cursor-pointer"
+                                title={`${day.date}: ${day.count} visits`}
+                              >
+                                {/* Tooltip Count pill */}
+                                <span
+                                  className={`text-[10px] sm:text-[11px] font-black px-1.5 py-0.5 rounded-md transition-all duration-200 whitespace-nowrap shadow-xs ${
+                                    day.isToday
+                                      ? "bg-emerald-500 text-white opacity-100"
+                                      : "bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 opacity-0 group-hover:opacity-100 -translate-y-1 group-hover:translate-y-0"
+                                  }`}
+                                >
+                                  {day.count}
+                                </span>
+
+                                {/* Bar Pillar */}
+                                <div
+                                  className={`w-full rounded-xl overflow-hidden p-0.5 flex flex-col justify-end h-full transition-all duration-300 ${
+                                    day.isToday
+                                      ? "bg-emerald-100/80 dark:bg-emerald-950/40 ring-2 ring-emerald-500/30"
+                                      : "bg-slate-200/60 dark:bg-slate-800/60 group-hover:bg-slate-300/60 dark:group-hover:bg-slate-700/60"
+                                  }`}
+                                >
+                                  <div
+                                    className={`w-full rounded-lg transition-all duration-500 shadow-sm ${
+                                      day.isToday
+                                        ? "bg-gradient-to-t from-emerald-600 via-teal-500 to-cyan-400 group-hover:brightness-110"
+                                        : "bg-gradient-to-t from-blue-600 via-indigo-600 to-cyan-400 group-hover:brightness-110"
+                                    }`}
+                                    style={{ height: `${barHeight}%` }}
+                                  />
+                                </div>
+
+                                {/* Date Label */}
+                                <div className="text-center">
+                                  <span
+                                    className={`block text-[9.5px] sm:text-[10.5px] font-bold leading-tight ${
+                                      day.isToday
+                                        ? "text-emerald-600 dark:text-emerald-400 font-black"
+                                        : "text-slate-600 dark:text-slate-400"
+                                    }`}
+                                  >
+                                    {day.label}
+                                  </span>
+                                  <span className="block text-[8.5px] sm:text-[9.5px] text-slate-400 dark:text-slate-500 uppercase leading-none mt-0.5">
+                                    {day.isToday ? "Today" : day.weekday}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              {/* Day-by-Day Detailed Log Table */}
+              {visitsData?.daily && visitsData.daily.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    දෛනික ලේඛනය (Detailed Breakdown)
+                  </h4>
+                  <div className="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200/80 dark:border-slate-800">
+                        <tr>
+                          <th className="py-2.5 px-4">දිනය (Date)</th>
+                          <th className="py-2.5 px-4">දවස (Day)</th>
+                          <th className="py-2.5 px-4 text-right">පැමිණීම් සංඛ්‍යාව (Visits)</th>
+                          <th className="py-2.5 px-4">ප්‍රතිශතය (Share)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                        {(() => {
+                          const totalInPeriod = visitsData.daily.reduce((acc, c) => acc + c.count, 0) || 1;
+                          return [...visitsData.daily].reverse().map((day) => {
+                            const pct = Math.round((day.count / totalInPeriod) * 100);
+                            return (
+                              <tr
+                                key={day.date}
+                                className={`transition-colors ${
+                                  day.isToday
+                                    ? "bg-emerald-50/60 dark:bg-emerald-950/20 font-bold"
+                                    : "hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                                }`}
+                              >
+                                <td className="py-2.5 px-4">
+                                  <div className="flex items-center gap-2">
+                                    {day.isToday && (
+                                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                    )}
+                                    <span className="font-mono text-slate-800 dark:text-slate-200">
+                                      {day.date}
+                                    </span>
+                                    {day.isToday && (
+                                      <span className="px-1.5 py-0.2 rounded text-[9.5px] font-black bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300">
+                                        Today
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-4 text-slate-600 dark:text-slate-400">
+                                  {day.weekday} ({day.label})
+                                </td>
+                                <td className="py-2.5 px-4 text-right font-black text-slate-900 dark:text-white">
+                                  {day.count.toLocaleString()}
+                                </td>
+                                <td className="py-2.5 px-4">
+                                  <div className="flex items-center gap-2 max-w-[160px]">
+                                    <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full transition-all duration-300 ${
+                                          day.isToday ? "bg-emerald-500" : "bg-blue-600"
+                                        }`}
+                                        style={{ width: `${pct}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-[10px] text-slate-400 font-mono w-8 text-right">
+                                      {pct}%
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Modern Interactive Analytics & Distribution Widgets */}
@@ -2294,7 +2771,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                 {/* SUB-TAB 1: STANDARD PAST PAPERS */}
                 {paperSubTab === "passpaper" && (
                   <div className="space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className={`grid grid-cols-1 ${passpaperLevel === "A/L" ? "md:grid-cols-4" : "md:grid-cols-3"} gap-4 transition-all duration-300`}>
                       {/* Exam Level */}
                       <div>
                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
@@ -2302,7 +2779,14 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                         </label>
                         <PremiumSelect
                           value={passpaperLevel}
-                          onChange={setPasspaperLevel}
+                          onChange={(val) => {
+                            setPasspaperLevel(val);
+                            if (val === "Grade 5") {
+                              setFormData((prev) => ({ ...prev, subject: "Scholarship" }));
+                            } else if (formData.subject === "Scholarship") {
+                              setFormData((prev) => ({ ...prev, subject: "" }));
+                            }
+                          }}
                           options={[
                             { value: "O/L", label: "G.C.E. Ordinary Level (O/L)", badge: "O/L" },
                             { value: "A/L", label: "G.C.E. Advanced Level (A/L)", badge: "A/L" },
@@ -2310,6 +2794,21 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                           ]}
                         />
                       </div>
+
+                      {/* A/L Stream Field (Appears when A/L is selected) */}
+                      {passpaperLevel === "A/L" && (
+                        <div className="animate-in fade-in zoom-in-95 duration-200">
+                          <label className="block text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <span>A/L Stream (විෂය ධාරාව)</span>
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <PremiumSelect
+                            value={alStream}
+                            onChange={setAlStream}
+                            options={AL_STREAMS}
+                          />
+                        </div>
+                      )}
 
                       {/* Academic Year */}
                       <div>
@@ -2346,27 +2845,40 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                     </div>
 
                     {/* Subject Input */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                        Subject Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="subject"
-                        required
-                        value={formData.subject}
-                        onChange={handleInputChange}
-                        placeholder="e.g. Science, Mathematics, Information Technology, Physics"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
-                      />
-                    </div>
+                    {passpaperLevel === "Grade 5" ? (
+                      <div className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-500/5 dark:bg-blue-900/10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm font-bold">5</span>
+                          <div>
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">විෂය: 5 ශ්‍රේණිය ශිෂ්‍යත්වය (Grade 5 Scholarship)</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">ශිෂ්‍යත්ව විභාගය සඳහා වෙනම විෂයන් නොමැති බැවින් විෂය ස්වයංක්‍රීයව &apos;Scholarship&apos; ලෙස සටහන් වේ.</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">Auto Set</span>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                          Subject Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="subject"
+                          required
+                          value={formData.subject}
+                          onChange={handleInputChange}
+                          placeholder="e.g. Science, Mathematics, Information Technology, Physics"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* SUB-TAB 2: MODEL PAPERS */}
                 {paperSubTab === "model" && (
                   <div className="space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className={`grid grid-cols-1 ${modelLevel === "A/L" ? "md:grid-cols-4" : "md:grid-cols-3"} gap-4 transition-all duration-300`}>
                       {/* Model Level */}
                       <div>
                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
@@ -2374,7 +2886,14 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                         </label>
                         <PremiumSelect
                           value={modelLevel}
-                          onChange={setModelLevel}
+                          onChange={(val) => {
+                            setModelLevel(val);
+                            if (val === "Grade 5") {
+                              setFormData((prev) => ({ ...prev, subject: "Scholarship" }));
+                            } else if (formData.subject === "Scholarship") {
+                              setFormData((prev) => ({ ...prev, subject: "" }));
+                            }
+                          }}
                           options={[
                             { value: "A/L", label: "G.C.E. Advanced Level (A/L)", badge: "A/L" },
                             { value: "O/L", label: "G.C.E. Ordinary Level (O/L)", badge: "O/L" },
@@ -2384,6 +2903,21 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                         />
                       </div>
 
+                      {/* A/L Stream Field (Appears when A/L is selected) */}
+                      {modelLevel === "A/L" && (
+                        <div className="animate-in fade-in zoom-in-95 duration-200">
+                          <label className="block text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <span>A/L Stream (විෂය ධාරාව)</span>
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <PremiumSelect
+                            value={alStream}
+                            onChange={setAlStream}
+                            options={AL_STREAMS}
+                          />
+                        </div>
+                      )}
+
                       {/* Academic Year */}
                       <div>
                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
@@ -2419,20 +2953,33 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                     </div>
 
                     {/* Subject Input */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                        Subject Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="subject"
-                        required
-                        value={formData.subject}
-                        onChange={handleInputChange}
-                        placeholder="e.g. Combined Mathematics, Chemistry, Biology, Economics"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
-                      />
-                    </div>
+                    {modelLevel === "Grade 5" ? (
+                      <div className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-500/5 dark:bg-blue-900/10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm font-bold">5</span>
+                          <div>
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">විෂය: 5 ශ්‍රේණිය ශිෂ්‍යත්වය (Grade 5 Scholarship)</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">ශිෂ්‍යත්ව ආදර්ශ ප්‍රශ්න පත්‍ර සඳහා විෂය ස්වයංක්‍රීයව &apos;Scholarship&apos; ලෙස සටහන් වේ.</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">Auto Set</span>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                          Subject Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="subject"
+                          required
+                          value={formData.subject}
+                          onChange={handleInputChange}
+                          placeholder="e.g. Combined Mathematics, Chemistry, Biology, Economics"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -2489,7 +3036,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className={`grid grid-cols-1 ${provinceGrade.includes("A/L") ? "md:grid-cols-4" : "md:grid-cols-3"} gap-4 transition-all duration-300`}>
                       {/* Academic Year */}
                       <div>
                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
@@ -2523,6 +3070,21 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                         />
                       </div>
 
+                      {/* A/L Stream for Provincial */}
+                      {provinceGrade.includes("A/L") && (
+                        <div className="animate-in fade-in zoom-in-95 duration-200">
+                          <label className="block text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <span>A/L Stream (විෂය ධාරාව)</span>
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <PremiumSelect
+                            value={alStream}
+                            onChange={setAlStream}
+                            options={AL_STREAMS}
+                          />
+                        </div>
+                      )}
+
                       {/* Subject Input */}
                       <div>
                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
@@ -2555,9 +3117,16 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                       {generatePaperTitle()}
                     </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                    Category: {getComputedCategory()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {((paperSubTab === "passpaper" && passpaperLevel === "A/L") || (paperSubTab === "model" && modelLevel === "A/L") || (paperSubTab === "province" && provinceGrade.includes("A/L"))) && (
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/80">
+                        Stream: {alStream}
+                      </span>
+                    )}
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                      Category: {getComputedCategory()}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Duplicate Warning Alert */}
@@ -2648,51 +3217,161 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
         {/* TAB 4: REGISTERED STUDENTS */}
         {activeTab === "students" && (
           <div className="space-y-4 animate-in fade-in duration-300">
-            <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between">
+            {/* Header with Title and Student Search Bar */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-lg font-black text-slate-900 dark:text-white">
-                  Registered Students ({users.length})
-                </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Student profiles registered on DESH EduHub.
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg font-black text-slate-900 dark:text-white">
+                    Registered Students (ලියාපදිංචි සිසුන්)
+                  </h1>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                    {users.length}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  ප්‍රශ්න පත්‍ර නොමිලේ Download කිරීමට ලියාපදිංචි වූ සිසුන්ගේ නාමලේඛනය සහ දුරකථන අංක.
                 </p>
+              </div>
+
+              {/* Search Bar for Students */}
+              <div className="relative w-full sm:w-72">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  placeholder="ශිෂ්‍ය නම හෝ Phone අංකය..."
+                  className="w-full pl-9 pr-8 py-2 text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+                />
+                {studentSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setStudentSearch("")}
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             </div>
 
+            {/* Students Table */}
             <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                    <tr className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
-                      <th className="py-3.5 px-4">Student</th>
-                      <th className="py-3.5 px-4">Email</th>
-                      <th className="py-3.5 px-4">Phone</th>
-                      <th className="py-3.5 px-4">Registered Date</th>
+                    <tr className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                      <th className="py-3.5 px-4 sm:px-6">ශිෂ්‍යයාගේ නම (Student Name)</th>
+                      <th className="py-3.5 px-4 sm:px-6">WhatsApp / Phone Number</th>
+                      <th className="py-3.5 px-4 sm:px-6">ලියාපදිංචි දිනය (Registered Date)</th>
+                      <th className="py-3.5 px-4 sm:px-6 text-right">ක්‍රියාමාර්ග (Actions)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                    {users.length === 0 ? (
+                    {filteredUsers.length === 0 ? (
                       <tr>
                         <td colSpan="4" className="py-12 text-center text-slate-400">
-                          No registered students found in database.
+                          {studentSearch ? (
+                            <div className="space-y-1">
+                              <p className="font-bold text-sm">සිසුන් හමු නොවීය</p>
+                              <p className="text-xs text-slate-500">"{studentSearch}" සෙවුමට ගැලපෙන නමක් හෝ අංකයක් නොමැත.</p>
+                              <button
+                                type="button"
+                                onClick={() => setStudentSearch("")}
+                                className="mt-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs hover:underline cursor-pointer"
+                              >
+                                සෙවුම ඉවත් කරන්න (Clear Search)
+                              </button>
+                            </div>
+                          ) : (
+                            <p>තවමත් ලියාපදිංචි වූ සිසුන් database එකෙහි නොමැත.</p>
+                          )}
                         </td>
                       </tr>
                     ) : (
-                      users.map((u) => (
-                        <tr key={u.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-                          <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center">
-                              {u.full_name ? u.full_name[0].toUpperCase() : "S"}
-                            </div>
-                            <span>{u.full_name || "Anonymous Student"}</span>
-                          </td>
-                          <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">{u.email || "-"}</td>
-                          <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">{u.phone || "-"}</td>
-                          <td className="py-3.5 px-4 text-slate-500">
-                            {u.created_at ? new Date(u.created_at).toLocaleDateString() : "-"}
-                          </td>
-                        </tr>
-                      ))
+                      filteredUsers.map((u, index) => {
+                        const studentName = u.name || u.full_name || "Student";
+                        const rawPhone = u.whatsapp_number || u.phone || u.whatsapp || "";
+                        // Clean phone number for WhatsApp link (e.g. 0719989000 -> 94719989000)
+                        let waNumber = rawPhone.replace(/\D/g, "");
+                        if (waNumber.startsWith("0")) {
+                          waNumber = "94" + waNumber.slice(1);
+                        }
+
+                        return (
+                          <tr key={u.id || index} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                            {/* Student Name */}
+                            <td className="py-3.5 px-4 sm:px-6">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-blue-600 text-white font-black text-xs flex items-center justify-center uppercase shrink-0 shadow-xs">
+                                  {studentName.charAt(0)}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate">
+                                    {studentName}
+                                  </p>
+                                  <p className="text-[10px] text-slate-400">
+                                    ID: {u.id ? u.id.slice(0, 8) + "..." : `#${index + 1}`}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Phone / WhatsApp */}
+                            <td className="py-3.5 px-4 sm:px-6">
+                              {rawPhone ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
+                                    {rawPhone}
+                                  </span>
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                    WhatsApp
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+
+                            {/* Registered Date */}
+                            <td className="py-3.5 px-4 sm:px-6 text-slate-500 dark:text-slate-400 text-xs">
+                              {u.created_at ? (
+                                <span title={new Date(u.created_at).toLocaleString()}>
+                                  {new Date(u.created_at).toLocaleDateString("en-US", {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
+                                </span>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+
+                            {/* Quick Action Button: WhatsApp */}
+                            <td className="py-3.5 px-4 sm:px-6 text-right">
+                              {rawPhone ? (
+                                <a
+                                  href={`https://wa.me/${waNumber}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 font-bold text-xs transition shadow-2xs hover:scale-102"
+                                  title={`Open WhatsApp chat with ${studentName}`}
+                                >
+                                  <svg className="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                  </svg>
+                                  <span>Chat</span>
+                                </a>
+                              ) : null}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -2843,11 +3522,15 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                                 {req.whatsapp}
                               </span>
                               <a
-                                href={`https://wa.me/${(req.whatsapp || "").replace(/[^0-9]/g, "")}?text=Hello%20${encodeURIComponent(req.name || "")},%20regarding%20your%20request%20on%20DESH%20Edu%20Hub:`}
+                                href={`https://wa.me/${(req.whatsapp || "").replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                                  req.status === "uploaded"
+                                    ? `හෙලෝ ${req.name || ""}, ඔබ DESH Digital Hub හරහා Request කළ ${req.year ? `${req.year} ` : ""}${req.subject || "ප්‍රශ්න පත්‍රය"} දැන් අපගේ වෙබ් අඩවියට Upload කර ඇත! Download කරගැනීමට පිවිසෙන්න: https://deshedubhub.com/`
+                                    : `Hello ${req.name || ""}, regarding your request on DESH Edu Hub:`
+                                )}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800"
-                                title="Open WhatsApp Chat"
+                                title={req.status === "uploaded" ? "Send 'Paper Ready' notification via WhatsApp" : "Open WhatsApp Chat"}
                               >
                                 <span>💬 WA</span>
                               </a>
@@ -3031,6 +3714,19 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                 </div>
               </div>
 
+              {editFormData.category === "A/L" && (
+                <div className="animate-in fade-in zoom-in-95 duration-200">
+                  <label className="block text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <span>A/L Stream (විෂය ධාරාව)</span>
+                  </label>
+                  <PremiumSelect
+                    value={editFormData.stream || "Physical Science"}
+                    onChange={(val) => setEditFormData({ ...editFormData, stream: val })}
+                    options={AL_STREAMS}
+                  />
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Subject <span className="text-red-500">*</span>
@@ -3158,6 +3854,87 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
           </div>
         ))}
       </div>
+
+      {/* SUPABASE SITE_VISITS SQL SETUP MODAL */}
+      {showSqlModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-lg p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl text-slate-800 dark:text-slate-100 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🗄️</span>
+                <h3 className="font-black text-base text-slate-900 dark:text-white">
+                  Supabase Site Visits SQL Configuration
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSqlModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Site visit data දිනපතා Supabase Cloud Database එකෙහි ස්ථිරව ගබඩා කිරීම සඳහා පහත SQL විධානය Supabase SQL Editor එකෙහි Run කරන්න:
+            </p>
+
+            <div className="relative">
+              <pre className="p-3.5 rounded-xl bg-slate-950 text-emerald-400 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800">
+{`CREATE TABLE IF NOT EXISTS public.site_visits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  visited_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  visit_date DATE DEFAULT CURRENT_DATE,
+  page_path TEXT DEFAULT '/',
+  user_agent TEXT,
+  session_id TEXT,
+  referrer TEXT
+);
+
+-- Row Level Security
+ALTER TABLE public.site_visits ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public insert" ON public.site_visits FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow service_role full" ON public.site_visits FOR ALL USING (true);`}
+              </pre>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(`CREATE TABLE IF NOT EXISTS public.site_visits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  visited_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  visit_date DATE DEFAULT CURRENT_DATE,
+  page_path TEXT DEFAULT '/',
+  user_agent TEXT,
+  session_id TEXT,
+  referrer TEXT
+);
+
+-- Row Level Security
+ALTER TABLE public.site_visits ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public insert" ON public.site_visits FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow service_role full" ON public.site_visits FOR ALL USING (true);`);
+                  setSqlCopied(true);
+                  setTimeout(() => setSqlCopied(false), 2000);
+                }}
+                className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1"
+              >
+                {sqlCopied ? "✓ Copied!" : "📋 Copy SQL"}
+              </button>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowSqlModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-xs transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
