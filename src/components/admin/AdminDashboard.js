@@ -21,6 +21,17 @@ const PROVINCES = [
   "North Central Province",
 ];
 
+const getProvinceFromText = (txt) => {
+  if (!txt) return null;
+  const lower = txt.toLowerCase();
+  for (const prov of PROVINCES) {
+    const provLower = prov.toLowerCase();
+    const short = provLower.replace(" province", "");
+    if (lower.includes(provLower) || lower.includes(short)) return provLower;
+  }
+  return null;
+};
+
 const PROVINCE_GRADES = [
   "Grade 11 (O/L)",
   "Grade 10",
@@ -36,6 +47,7 @@ const PROVINCE_TERMS = [
   "1st Term Test",
   "2nd Term Test",
   "3rd Term Test",
+  "Pre Test",
 ];
 
 const MEDIUMS = ["Sinhala Medium", "English Medium", "Tamil Medium"];
@@ -81,9 +93,14 @@ const KNOWN_SUBJECTS = [
 
 export default function AdminDashboard({ initialPapers = [], initialUsers = [] }) {
   // Navigation State
-  const [activeTab, setActiveTab] = useState("dashboard"); // "dashboard" | "repository" | "add-paper" | "students"
+  const [activeTab, setActiveTab] = useState("dashboard"); // "dashboard" | "repository" | "add-paper" | "students" | "requests"
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Paper Requests & Feedback State
+  const [requests, setRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [requestsFilter, setRequestsFilter] = useState("all"); // "all" | "paper_request" | "feedback" | "pending"
 
   // Sub-tab state for Add Papers
   const [paperSubTab, setPaperSubTab] = useState("passpaper"); // "passpaper" | "model" | "province"
@@ -331,15 +348,32 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
     }
 
     // Check duplicate among other papers
-    const duplicate = papers.find(
-      (p) =>
-        p.id !== editingPaper.id &&
-        (p.title?.trim().toLowerCase() === editFormData.title.trim().toLowerCase() ||
-          (p.category?.toLowerCase() === editFormData.category?.toLowerCase() &&
-            p.subject?.trim().toLowerCase() === editFormData.subject.trim().toLowerCase() &&
-            p.year?.toString().trim() === editFormData.year.toString().trim() &&
-            Boolean(p.has_answers) === Boolean(editFormData.has_answers)))
-    );
+    const currentEditProvince = getProvinceFromText(editFormData.title);
+    const cleanEditTitle = editFormData.title.trim().toLowerCase();
+
+    const duplicate = papers.find((p) => {
+      if (p.id === editingPaper.id) return false;
+      const pTitle = p.title?.trim().toLowerCase() || "";
+      if (pTitle === cleanEditTitle) return true;
+
+      // If provinces are different, they are NEVER duplicates!
+      const pProvince = getProvinceFromText(p.title);
+      if (currentEditProvince && pProvince && currentEditProvince !== pProvince) {
+        return false;
+      }
+
+      // For Provincial papers, they differ by province, term, or grade
+      if (editFormData.category?.toLowerCase() === "provincial" || p.category?.toLowerCase() === "provincial") {
+        return false;
+      }
+
+      return (
+        p.category?.toLowerCase() === editFormData.category?.toLowerCase() &&
+        p.subject?.trim().toLowerCase() === editFormData.subject.trim().toLowerCase() &&
+        p.year?.toString().trim() === editFormData.year.toString().trim() &&
+        Boolean(p.has_answers) === Boolean(editFormData.has_answers)
+      );
+    });
 
     if (duplicate) {
       const msg = `Another paper with these details already exists ("${duplicate.title}").`;
@@ -389,6 +423,75 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
       });
     } finally {
       setUpdatingPaper(false);
+    }
+  };
+
+  // Fetch Paper Requests & Feedbacks
+  const fetchRequests = async () => {
+    setRequestsLoading(true);
+    try {
+      const res = await fetch("/api/requests");
+      const json = await res.json();
+      if (json.success && json.requests) {
+        setRequests(json.requests);
+      }
+    } catch (err) {
+      console.warn("Error fetching requests:", err);
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const handleUpdateReqStatus = async (id, status) => {
+    try {
+      const res = await fetch("/api/requests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setRequests((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, status } : r))
+        );
+        showToast({
+          type: "success",
+          title: "Status Updated",
+          message: `Request marked as ${status}.`,
+        });
+      }
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: "Update Failed",
+        message: err.message,
+      });
+    }
+  };
+
+  const handleDeleteReq = async (id) => {
+    if (!confirm("Are you sure you want to delete this entry?")) return;
+    try {
+      const res = await fetch(`/api/requests?id=${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (json.success) {
+        setRequests((prev) => prev.filter((r) => r.id !== id));
+        showToast({
+          type: "info",
+          title: "Deleted",
+          message: "Request entry deleted.",
+        });
+      }
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: "Delete Failed",
+        message: err.message,
+      });
     }
   };
 
@@ -598,7 +701,9 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
     }
 
     // 6. Detect Term
-    if (lower.includes("1st term") || lower.includes("first term") || lower.includes("1 term") || lower.includes("term 1")) {
+    if (lower.includes("pre test") || lower.includes("pre-test") || lower.includes("pretest")) {
+      details.term = "Pre Test";
+    } else if (lower.includes("1st term") || lower.includes("first term") || lower.includes("1 term") || lower.includes("term 1")) {
       details.term = "1st Term Test";
     } else if (lower.includes("2nd term") || lower.includes("second term") || lower.includes("2 term") || lower.includes("term 2")) {
       details.term = "2nd Term Test";
@@ -765,16 +870,33 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
     const cleanTitle = title.trim().toLowerCase();
     const cleanSubj = subject.trim().toLowerCase();
     const cleanYr = year.toString().trim();
+    const currentProvince = getProvinceFromText(title);
 
     const existing = papers.find((p) => {
-      const sameTitle = p.title?.trim().toLowerCase() === cleanTitle;
+      const pTitle = p.title?.trim().toLowerCase() || "";
+      const sameTitle = pTitle === cleanTitle;
+
+      // If exact title matches, it is definitely a duplicate
+      if (sameTitle) return true;
+
+      // If provinces are different, they are NEVER duplicates!
+      const pProvince = getProvinceFromText(p.title);
+      if (currentProvince && pProvince && currentProvince !== pProvince) {
+        return false;
+      }
+
+      // For Provincial papers, they differ by province, term, or grade
+      if (category?.toLowerCase() === "provincial" || p.category?.toLowerCase() === "provincial") {
+        return false;
+      }
+
       const sameMeta =
         p.category?.toLowerCase() === category.toLowerCase() &&
         p.subject?.trim().toLowerCase() === cleanSubj &&
         p.year?.toString().trim() === cleanYr &&
         Boolean(p.has_answers) === Boolean(hasAns);
 
-      return sameTitle || sameMeta;
+      return sameMeta;
     });
 
     if (existing) {
@@ -1265,6 +1387,51 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-slate-400" />
               )}
             </button>
+
+            {/* Tab 5: Paper Requests & Feedback */}
+            <button
+              onClick={() => {
+                setActiveTab("requests");
+                setMobileSidebarOpen(false);
+                fetchRequests();
+              }}
+              title={`Paper Requests & Feedback (${requests.length})`}
+              className={`relative w-full flex items-center rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                isSidebarCollapsed
+                  ? "w-11 h-11 mx-auto justify-center p-0"
+                  : "justify-between px-3.5 py-2.5"
+              } ${
+                activeTab === "requests"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                {!isSidebarCollapsed && <span>Requests & Feedback</span>}
+              </div>
+              {!isSidebarCollapsed ? (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    activeTab === "requests"
+                      ? "bg-white/20 text-white"
+                      : requests.filter((r) => r.status === "pending").length > 0
+                      ? "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  {requests.filter((r) => r.status === "pending").length > 0
+                    ? `${requests.filter((r) => r.status === "pending").length} new`
+                    : requests.length}
+                </span>
+              ) : (
+                requests.filter((r) => r.status === "pending").length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                )
+              )}
+            </button>
           </div>
         </div>
       </aside>
@@ -1298,6 +1465,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                   {activeTab === "repository" && `Past Papers Repository (${papers.length})`}
                   {activeTab === "add-paper" && "Upload Past Paper"}
                   {activeTab === "students" && `Registered Students (${users.length})`}
+                  {activeTab === "requests" && `Paper Requests & Feedback (${requests.length})`}
                 </h2>
                 <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 dark:bg-blue-400/10 border border-blue-500/20 text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -2109,15 +2277,6 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                   >
                     <span>{isFrozen ? "❄ Frozen (Batch Mode)" : "❄ Freeze Settings"}</span>
                   </button>
-
-                  {/* Clear Form */}
-                  <button
-                    type="button"
-                    onClick={handleClearForm}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-bold transition cursor-pointer"
-                  >
-                    <span>Clear Form</span>
-                  </button>
                 </div>
 
                 {/* Auto-fill Notice Pill */}
@@ -2324,7 +2483,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                           options={PROVINCE_TERMS.map((t) => ({
                             value: t,
                             label: t,
-                            badge: "Term",
+                            badge: t.includes("Pre") ? "Pre" : "Term",
                           }))}
                         />
                       </div>
@@ -2457,8 +2616,19 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                   </div>
                 </div>
 
-                {/* Submit Action Button */}
-                <div className="pt-2 flex items-center justify-end gap-3">
+                {/* Submit & Clear Action Buttons */}
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={handleClearForm}
+                    className="w-full sm:w-auto px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-2xs"
+                  >
+                    <svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Clear Form</span>
+                  </button>
+
                   <button
                     type="submit"
                     disabled={Boolean(duplicateCheck?.isDuplicate)}
@@ -2524,6 +2694,266 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [] }
                         </tr>
                       ))
                     )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: PAPER REQUESTS & FEEDBACK */}
+        {activeTab === "requests" && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Header with Title and Refresh */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <h1 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Paper Requests & Student Feedback</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-black bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                    {requests.length}
+                  </span>
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Manage past paper requests and student feedback submitted via the public site.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchRequests}
+                disabled={requestsLoading}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition shadow-2xs cursor-pointer disabled:opacity-50"
+              >
+                <svg className={`w-3.5 h-3.5 ${requestsLoading ? "animate-spin text-blue-600" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {[
+                { id: "all", label: "All Submissions", count: requests.length },
+                {
+                  id: "pending",
+                  label: "Pending",
+                  count: requests.filter((r) => r.status === "pending").length,
+                  color: "bg-amber-500 text-white",
+                },
+                {
+                  id: "paper_request",
+                  label: "Paper Requests",
+                  count: requests.filter((r) => r.type === "paper_request").length,
+                },
+                {
+                  id: "feedback",
+                  label: "Feedbacks",
+                  count: requests.filter((r) => r.type === "feedback").length,
+                },
+                {
+                  id: "resolved",
+                  label: "Resolved / Uploaded",
+                  count: requests.filter((r) => r.status === "resolved" || r.status === "uploaded").length,
+                },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setRequestsFilter(f.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    requestsFilter === f.id
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <span>{f.label}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      requestsFilter === f.id
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                    }`}
+                  >
+                    {f.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Requests Table */}
+            <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                    <tr className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                      <th className="py-3.5 px-4">Type</th>
+                      <th className="py-3.5 px-4">Student & Contact</th>
+                      <th className="py-3.5 px-4">Details / Message</th>
+                      <th className="py-3.5 px-4">Date</th>
+                      <th className="py-3.5 px-4">Status</th>
+                      <th className="py-3.5 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                    {(() => {
+                      const filtered = requests.filter((r) => {
+                        if (requestsFilter === "all") return true;
+                        if (requestsFilter === "pending") return r.status === "pending";
+                        if (requestsFilter === "paper_request") return r.type === "paper_request";
+                        if (requestsFilter === "feedback") return r.type === "feedback";
+                        if (requestsFilter === "resolved") return r.status === "resolved" || r.status === "uploaded";
+                        return true;
+                      });
+
+                      if (filtered.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan="6" className="py-12 text-center text-slate-400">
+                              No entries found matching this filter.
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return filtered.map((req) => (
+                        <tr key={req.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
+                          {/* Type */}
+                          <td className="py-3.5 px-4">
+                            {req.type === "paper_request" ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                <span>📄</span>
+                                <span>Paper Request</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                <span>💬</span>
+                                <span>Feedback</span>
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Student & WhatsApp */}
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-slate-900 dark:text-white">
+                              {req.name}
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-slate-500 text-[11px] font-mono">
+                                {req.whatsapp}
+                              </span>
+                              <a
+                                href={`https://wa.me/${(req.whatsapp || "").replace(/[^0-9]/g, "")}?text=Hello%20${encodeURIComponent(req.name || "")},%20regarding%20your%20request%20on%20DESH%20Edu%20Hub:`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800"
+                                title="Open WhatsApp Chat"
+                              >
+                                <span>💬 WA</span>
+                              </a>
+                            </div>
+                          </td>
+
+                          {/* Details / Content */}
+                          <td className="py-3.5 px-4 max-w-md">
+                            {req.type === "paper_request" ? (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {req.category && (
+                                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                      {req.category}
+                                    </span>
+                                  )}
+                                  <span className="font-extrabold text-blue-600 dark:text-blue-400">
+                                    {req.subject}
+                                  </span>
+                                  {req.year && (
+                                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                      {req.year}
+                                    </span>
+                                  )}
+                                  {req.medium && (
+                                    <span className="text-[10px] text-slate-400">
+                                      ({req.medium})
+                                    </span>
+                                  )}
+                                </div>
+                                {req.message && (
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                                    "{req.message}"
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="space-y-0.5">
+                                <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 block">
+                                  {req.category}
+                                </span>
+                                <p className="text-slate-700 dark:text-slate-300 font-medium">
+                                  {req.message}
+                                </p>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Date */}
+                          <td className="py-3.5 px-4 text-slate-500 text-[11px] whitespace-nowrap">
+                            {req.created_at ? new Date(req.created_at).toLocaleDateString() : "-"}
+                          </td>
+
+                          {/* Status Badge */}
+                          <td className="py-3.5 px-4">
+                            {req.status === "pending" && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                                Pending
+                              </span>
+                            )}
+                            {req.status === "uploaded" && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                                Uploaded ✓
+                              </span>
+                            )}
+                            {req.status === "resolved" && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800">
+                                Resolved
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+                            {req.status === "pending" ? (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateReqStatus(req.id, "uploaded")}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 font-bold text-[11px] transition cursor-pointer"
+                                title="Mark as Paper Uploaded"
+                              >
+                                Mark Uploaded
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateReqStatus(req.id, "pending")}
+                                className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 font-bold text-[11px] transition cursor-pointer"
+                                title="Set back to Pending"
+                              >
+                                Reopen
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteReq(req.id)}
+                              className="px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-bold text-[11px] transition cursor-pointer"
+                              title="Delete request"
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        </tr>
+                      ));
+                    })()}
                   </tbody>
                 </table>
               </div>

@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import DownloadModal from "./DownloadModal";
+import PdfViewerModal from "./PdfViewerModal";
+import FeedbackRequestModal from "./FeedbackRequestModal";
+import FloatingFeedbackButton from "./FloatingFeedbackButton";
 import SearchBooksBackground from "./SearchBooksBackground";
 import PremiumSelect from "@/components/ui/PremiumSelect";
 
@@ -89,6 +92,12 @@ export default function PapersGallery({ initialPapers = [] }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [pendingPaper, setPendingPaper] = useState(null);
+  const [viewingPaper, setViewingPaper] = useState(null);
+
+  // Paper Request & Feedback Modal State
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackInitialTab, setFeedbackInitialTab] = useState("request");
+  const [feedbackInitialSubject, setFeedbackInitialSubject] = useState("");
 
   // Sync user with localStorage
   const loadUser = () => {
@@ -395,27 +404,33 @@ export default function PapersGallery({ initialPapers = [] }) {
                         className="group relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:border-blue-500/50 dark:hover:border-blue-500/50 shadow-xs hover:shadow-md hover:shadow-blue-500/5 hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-3.5 flex flex-col justify-between"
                       >
                         <div>
-                          {/* Top Bar: Category, Subject & Year in one sleek line */}
-                          <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                            <div className="flex items-center gap-1.5 overflow-hidden">
-                              <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${getCategoryBadge(
-                                  paper.category
-                                )}`}
-                              >
-                                {paper.category || "General"}
-                              </span>
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 truncate">
-                                {paper.subject}
-                              </span>
-                            </div>
-                            <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60 shrink-0">
+                          {/* Top Bar: Category on Left, Year on Right */}
+                          <div className="flex items-center justify-between gap-1.5 mb-2">
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${getCategoryBadge(
+                                paper.category
+                              )}`}
+                            >
+                              {paper.category || "General"}
+                            </span>
+                            <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700/80 shrink-0">
                               {paper.year}
                             </span>
                           </div>
 
+                          {/* Highlighted & Centered Subject Name */}
+                          {paper.subject && (
+                            <div className="my-2.5 flex items-center justify-center">
+                              <div className="w-full text-center py-1.5 px-3 rounded-xl bg-gradient-to-r from-blue-50/90 via-indigo-50/90 to-blue-50/90 dark:from-blue-950/60 dark:via-indigo-950/60 dark:to-blue-950/60 border border-blue-200/90 dark:border-blue-800/70 shadow-2xs group-hover:border-blue-400 dark:group-hover:border-blue-500 group-hover:shadow-xs transition-all">
+                                <span className="text-xs sm:text-[13px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-300 drop-shadow-xs truncate block">
+                                  {paper.subject}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Title */}
-                          <h4 className="text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-snug">
+                          <h4 className="text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-snug">
                             {paper.title}
                           </h4>
 
@@ -430,32 +445,50 @@ export default function PapersGallery({ initialPapers = [] }) {
                           )}
                         </div>
 
-                        {/* Card Footer / Download Action (Slimmer spacing) */}
-                        <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                        {/* Card Footer / View & Download Actions */}
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                             <span className="flex items-center gap-1">
-                              <svg className="w-3 h-3 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-3.5 h-3.5 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
                               </svg>
-                              <span>PDF Document</span>
+                              <span className="hidden sm:inline">PDF</span>
                             </span>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadClick(paper)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white text-[11px] font-bold rounded-lg shadow-2xs hover:shadow-blue-500/20 transition-all cursor-pointer"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                              />
-                            </svg>
-                            <span>Download</span>
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            {/* View / Preview Button */}
+                            <button
+                              type="button"
+                              onClick={() => setViewingPaper(paper)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 text-[11px] font-bold rounded-lg border border-slate-200/80 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
+                              title="View Paper in Modal"
+                            >
+                              <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              <span>View</span>
+                            </button>
+
+                            {/* Download Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadClick(paper)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white text-[11px] font-bold rounded-lg shadow-2xs hover:shadow-blue-500/20 transition-all cursor-pointer"
+                              title="Download PDF"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                />
+                              </svg>
+                              <span>Download</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -476,18 +509,59 @@ export default function PapersGallery({ initialPapers = [] }) {
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
               ඔබ සෙවූ නිර්ණායක වලට අදාළ ප්‍රශ්න පත්‍ර තවම ඇතුළත් කර නොමැත. වෙනත් විෂයක් හෝ වසරක් තෝරා බලන්න.
             </p>
-            <button
-              onClick={() => {
-                setSelectedCategory("All");
-                setSelectedYear("All");
-                setSearchQuery("");
-              }}
-              className="text-xs font-bold px-5 py-2.5 bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 rounded-xl transition cursor-pointer"
-            >
-              සියලුම ප්‍රශ්න පත්‍ර පෙන්වන්න (Reset Filters)
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => {
+                  setSelectedCategory("All");
+                  setSelectedYear("All");
+                  setSearchQuery("");
+                }}
+                className="text-xs font-bold px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition cursor-pointer"
+              >
+                සියලුම ප්‍රශ්න පත්‍ර පෙන්වන්න (Reset Filters)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFeedbackInitialTab("request");
+                  setFeedbackInitialSubject(searchQuery);
+                  setFeedbackModalOpen(true);
+                }}
+                className="text-xs font-bold px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-md transition cursor-pointer flex items-center gap-1.5"
+              >
+                <span>📄 සොයන ප්‍රශ්න පත්‍රය Request කරන්න</span>
+              </button>
+            </div>
           </div>
         )}
+
+        {/* Floating Feedback & Paper Request Action Button */}
+        <FloatingFeedbackButton
+          onClick={() => {
+            setFeedbackInitialTab("request");
+            setFeedbackInitialSubject("");
+            setFeedbackModalOpen(true);
+          }}
+        />
+
+        {/* Paper Request & Feedback Modal */}
+        <FeedbackRequestModal
+          isOpen={feedbackModalOpen}
+          onClose={() => setFeedbackModalOpen(false)}
+          initialTab={feedbackInitialTab}
+          initialSubject={feedbackInitialSubject}
+        />
+
+        {/* Interactive PDF Viewer Modal */}
+        <PdfViewerModal
+          isOpen={Boolean(viewingPaper)}
+          onClose={() => setViewingPaper(null)}
+          paper={viewingPaper}
+          onDownload={(paperToDownload) => {
+            setViewingPaper(null);
+            handleDownloadClick(paperToDownload);
+          }}
+        />
 
         {/* Soft Login Download Modal */}
         <DownloadModal

@@ -46,7 +46,7 @@ export async function POST(request) {
       return NextResponse.json(
         {
           success: false,
-          error: `මෙම නමින් වෙනත් ප්‍රශ්න පත්‍රයක් දැනටමත් පවතී ("${duplicateMatches[0].title}").`,
+          error: `Another paper with this title already exists ("${duplicateMatches[0].title}").`,
         },
         { status: 409 }
       );

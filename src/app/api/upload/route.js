@@ -3,6 +3,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { r2 } from "@/lib/r2";
 import { supabase } from "@/lib/supabase";
 import { PDFDocument, PageSizes } from "pdf-lib";
+import { optimizePdfDocument } from "@/lib/pdfCompressor";
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -93,6 +94,28 @@ export async function POST(request) {
       );
     }
 
+    // Helper to detect province name in text
+    const PROVINCE_KEYS = [
+      "western",
+      "central",
+      "southern",
+      "north western",
+      "sabaragamuwa",
+      "eastern",
+      "uva",
+      "northern",
+      "north central",
+    ];
+
+    const getProvince = (txt) => {
+      if (!txt) return null;
+      const lower = txt.toLowerCase();
+      for (const prov of PROVINCE_KEYS) {
+        if (lower.includes(prov)) return prov;
+      }
+      return null;
+    };
+
     // B. Check by category, subject, year, and answers combination
     const { data: metaMatches } = await supabase
       .from("papers")
@@ -102,13 +125,28 @@ export async function POST(request) {
       .eq("year", parsedYear);
 
     if (metaMatches && metaMatches.length > 0) {
+      const currentProvince = getProvince(trimmedTitle);
+
       const duplicate = metaMatches.find((p) => {
         const pAns =
           p.has_answers === true ||
           p.has_answers === "true" ||
           p.title?.toLowerCase().includes("answers") ||
           p.title?.includes("පිළිතුරු");
-        return pAns === hasAnswers;
+        if (pAns !== hasAnswers) return false;
+
+        // If provinces are different, they are NEVER duplicates!
+        const pProvince = getProvince(p.title);
+        if (currentProvince && pProvince && currentProvince !== pProvince) {
+          return false;
+        }
+
+        // For Provincial papers, they differ by province, grade, and term
+        if (trimmedCat.toLowerCase() === "provincial" || p.category?.toLowerCase() === "provincial") {
+          return false;
+        }
+
+        return true;
       });
 
       if (duplicate) {
@@ -188,17 +226,28 @@ export async function POST(request) {
           height: a4Height,
         });
 
-        // Save the modified PDF
-        const modifiedPdfBytes = await pdfDoc.save();
-        uploadBuffer = Buffer.from(modifiedPdfBytes);
-        console.log(
-          `Appended promotional poster (${chosenFileName}) to PDF. New page count: ${pdfDoc.getPageCount()}`
-        );
+        console.log(`Attached promo poster (${chosenFileName}). New page count: ${pdfDoc.getPageCount()}`);
       } else {
-        console.warn("Promotional poster image not found in public folder, uploading original PDF.");
+        console.warn("Promotional poster image not found in public folder, proceeding with PDF compression.");
       }
+
+      // Compress the entire PDF (downsample & optimize embedded images across all pages)
+      const { imagesOptimized, bytesSaved } = await optimizePdfDocument(pdfDoc, {
+        quality: 72,
+        maxDimension: 1600,
+      });
+
+      // Save the modified PDF with object streams compression enabled
+      const modifiedPdfBytes = await pdfDoc.save({
+        useObjectStreams: true,
+      });
+      uploadBuffer = Buffer.from(modifiedPdfBytes);
+
+      console.log(
+        `PDF Optimization Complete: Original: ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)} MB, Final: ${(uploadBuffer.length / 1024 / 1024).toFixed(2)} MB (${imagesOptimized} images optimized, ${(bytesSaved / 1024 / 1024).toFixed(2)} MB saved).`
+      );
     } catch (pdfError) {
-      console.warn("Notice: Could not append promo poster to PDF, uploading original:", pdfError);
+      console.warn("Notice: Could not compress or append promo poster, uploading original:", pdfError);
       // Fallback: upload original PDF buffer
       uploadBuffer = Buffer.from(arrayBuffer);
     }
