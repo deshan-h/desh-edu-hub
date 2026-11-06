@@ -187,8 +187,8 @@ export default function Navbar({ papers = [] }) {
             className="flex items-center gap-2 sm:gap-3 group shrink-0 transition-transform duration-300 hover:scale-102 cursor-pointer"
             title="DESH EduHub"
           >
-            {/* 3D Metallic Emblem Icon with Aura Pedestal Badge */}
-            <div className="relative shrink-0 flex items-center justify-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl bg-gradient-to-br from-white/95 via-slate-50/80 to-slate-100/60 dark:from-slate-800/90 dark:via-slate-900/90 dark:to-slate-950 border border-slate-200/90 dark:border-white/15 shadow-sm shadow-slate-900/5 dark:shadow-cyan-500/15 group-hover:shadow-md group-hover:shadow-blue-500/25 group-hover:border-blue-400/60 dark:group-hover:border-cyan-400/50 transition-all duration-300">
+            {/* 3D Metallic Emblem Icon with Glass Aura Pedestal Badge */}
+            <div className="relative shrink-0 flex items-center justify-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200/80 dark:border-white/15 shadow-sm shadow-slate-900/5 dark:shadow-cyan-500/20 group-hover:shadow-md group-hover:shadow-blue-500/25 group-hover:border-blue-400/60 dark:group-hover:border-cyan-400/50 transition-all duration-300">
               <Image
                 src="/icon-512.png"
                 alt="DESH EduHub Logo"

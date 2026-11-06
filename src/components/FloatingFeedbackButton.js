@@ -54,10 +54,10 @@ export default function FloatingFeedbackButton({ onClick, onOpen }) {
           {/* Header */}
           <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full overflow-hidden border border-blue-400/80 shrink-0 bg-white dark:bg-slate-800 p-0.5 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-full overflow-hidden border border-blue-400/80 shrink-0 bg-white/60 dark:bg-slate-800/80 p-0.5 flex items-center justify-center">
                 <img
-                  src="/icon-512.png"
-                  alt=""
+                  src="/icon-512.png?v=5"
+                  alt="Desh Hub Support"
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -127,11 +127,11 @@ export default function FloatingFeedbackButton({ onClick, onOpen }) {
           title="Support Agent: Request Paper / Feedback"
         >
           {/* Logo inside Circle */}
-          <div className="keep-round w-full h-full rounded-full overflow-hidden bg-gradient-to-tr from-white via-slate-50 to-slate-100 dark:from-slate-800 dark:via-slate-900 dark:to-slate-950 border border-slate-200/80 dark:border-white/10 flex items-center justify-center p-1.5 sm:p-2 shadow-inner">
+          <div className="keep-round w-full h-full rounded-full overflow-hidden bg-white/40 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/80 dark:border-white/10 flex items-center justify-center p-1.5 sm:p-2 shadow-inner">
             {!logoError ? (
               <img
-                src="/icon-512.png"
-                alt=""
+                src="/icon-512.png?v=5"
+                alt="DESH Support"
                 onError={() => setLogoError(true)}
                 className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] transition-transform duration-300 group-hover:scale-110 pointer-events-none"
               />

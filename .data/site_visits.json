@@ -7657,6 +7657,38 @@
       "visit_date": "2026-11-03",
       "visited_at": "2026-11-03T12:39:23.228Z",
       "screen": "1874x929"
+    },
+    {
+      "page_path": "/",
+      "referrer": null,
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "visit_date": "2026-11-07",
+      "visited_at": "2026-11-06T18:53:41.756Z",
+      "screen": "1394x749"
+    },
+    {
+      "page_path": "/",
+      "referrer": "http://localhost:3000/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "visit_date": "2026-11-07",
+      "visited_at": "2026-11-06T18:54:17.267Z",
+      "screen": "1394x749"
+    },
+    {
+      "page_path": "/",
+      "referrer": "http://localhost:3000/?reload=1793991203715",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "visit_date": "2026-11-07",
+      "visited_at": "2026-11-06T20:45:35.717Z",
+      "screen": "1394x749"
+    },
+    {
+      "page_path": "/",
+      "referrer": "http://localhost:3000/?reload=1793997924894",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "visit_date": "2026-11-07",
+      "visited_at": "2026-11-06T20:54:48.568Z",
+      "screen": "1874x929"
     }
   ]
 }

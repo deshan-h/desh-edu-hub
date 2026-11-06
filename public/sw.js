@@ -1,4 +1,4 @@
-const CACHE_NAME = "desh-eduhub-cache-v4";
+const CACHE_NAME = "desh-eduhub-cache-v5";
 
 const PRECACHE_ASSETS = [
   "/",

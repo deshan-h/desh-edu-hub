@@ -69,33 +69,146 @@ export const STREAM_OPTIONS = [
   },
 ];
 
-// Tier 1: Exam Levels
+// Grade Options for School Grades (Grade 1 - 11)
+export const GRADE_OPTIONS = [
+  {
+    value: "All",
+    label: "සියලුම ශ්‍රේණි (Grades 1 - 11)",
+    sinhala: "1 සිට 11 දක්වා සියලුම ශ්‍රේණි",
+    short: "All (Gr 1-11)",
+    badge: "All",
+    icon: "📚",
+  },
+  {
+    value: "Grade 1",
+    label: "Grade 1 (1 ශ්‍රේණිය)",
+    sinhala: "1 ශ්‍රේණිය",
+    short: "Grade 1",
+    badge: "Gr 1",
+    icon: "🌱",
+  },
+  {
+    value: "Grade 2",
+    label: "Grade 2 (2 ශ්‍රේණිය)",
+    sinhala: "2 ශ්‍රේණිය",
+    short: "Grade 2",
+    badge: "Gr 2",
+    icon: "🌿",
+  },
+  {
+    value: "Grade 3",
+    label: "Grade 3 (3 ශ්‍රේණිය)",
+    sinhala: "3 ශ්‍රේණිය",
+    short: "Grade 3",
+    badge: "Gr 3",
+    icon: "☘️",
+  },
+  {
+    value: "Grade 4",
+    label: "Grade 4 (4 ශ්‍රේණිය)",
+    sinhala: "4 ශ්‍රේණිය",
+    short: "Grade 4",
+    badge: "Gr 4",
+    icon: "🍀",
+  },
+  {
+    value: "Grade 5",
+    label: "Grade 5 (5 ශ්‍රේණිය)",
+    sinhala: "5 ශ්‍රේණිය",
+    short: "Grade 5",
+    badge: "Gr 5",
+    icon: "🎒",
+  },
+  {
+    value: "Grade 6",
+    label: "Grade 6 (6 ශ්‍රේණිය)",
+    sinhala: "6 ශ්‍රේණිය",
+    short: "Grade 6",
+    badge: "Gr 6",
+    icon: "📘",
+  },
+  {
+    value: "Grade 7",
+    label: "Grade 7 (7 ශ්‍රේණිය)",
+    sinhala: "7 ශ්‍රේණිය",
+    short: "Grade 7",
+    badge: "Gr 7",
+    icon: "📗",
+  },
+  {
+    value: "Grade 8",
+    label: "Grade 8 (8 ශ්‍රේණිය)",
+    sinhala: "8 ශ්‍රේණිය",
+    short: "Grade 8",
+    badge: "Gr 8",
+    icon: "📙",
+  },
+  {
+    value: "Grade 9",
+    label: "Grade 9 (9 ශ්‍රේණිය)",
+    sinhala: "9 ශ්‍රේණිය",
+    short: "Grade 9",
+    badge: "Gr 9",
+    icon: "📕",
+  },
+  {
+    value: "Grade 10",
+    label: "Grade 10 (10 ශ්‍රේණිය)",
+    sinhala: "10 ශ්‍රේණිය",
+    short: "Grade 10",
+    badge: "Gr 10",
+    icon: "📓",
+  },
+  {
+    value: "Grade 11",
+    label: "Grade 11 (11 ශ්‍රේණිය)",
+    sinhala: "11 ශ්‍රේණිය",
+    short: "Grade 11",
+    badge: "Gr 11",
+    icon: "📔",
+  },
+];
+
+// Tier 1: Exam Levels & Secondary School Grades (Top Tier)
 const LEVEL_CATEGORIES = [
   {
     id: "O/L",
+    title: "සාමාන්‍ය පෙළ",
+    sub: "(O/L)",
     label: "සාමාන්‍ය පෙළ (O/L)",
     shortLabel: "O/L",
   },
   {
     id: "A/L",
+    title: "උසස් පෙළ",
+    sub: "(A/L)",
     label: "උසස් පෙළ (A/L)",
     shortLabel: "A/L",
   },
   {
     id: "Grade 5",
-    label: "ශිෂ්‍යත්වය (Grade 5)",
+    title: "ශිෂ්‍යත්වය",
+    sub: "(Scholarship)",
+    label: "ශිෂ්‍යත්වය (Scholarship)",
     shortLabel: "ශිෂ්‍යත්වය",
+  },
+  {
+    id: "Grade 1-11",
+    title: "1 - 11 ශ්‍රේණි",
+    sub: "(Grades 1-11)",
+    label: "1 - 11 ශ්‍රේණි (Grades 1-11)",
+    shortLabel: "1 - 11 ශ්‍රේණි",
   },
 ];
 
-// Tier 2: Paper Types (Sub-tabs)
-const PAPER_TYPES = [
+// Tier 2: Sub-Tabs for National Exams: O/L, A/L, and Scholarship (Past Papers & Model Papers)
+export const EXAM_SUB_TABS = [
   {
     id: "Past",
     label: "පසුගිය ප්‍රශ්න පත්‍ර (Past Papers)",
-    shortLabel: "Past Papers",
+    shortLabel: "Pass Papers",
     icon: (
-      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     ),
@@ -105,52 +218,118 @@ const PAPER_TYPES = [
     label: "ආදර්ශ ප්‍රශ්න පත්‍ර (Model Papers)",
     shortLabel: "Model Papers",
     icon: (
-      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="9" strokeWidth={2} />
         <circle cx="12" cy="12" r="5" strokeWidth={2} />
         <circle cx="12" cy="12" r="1.5" strokeWidth={2} fill="currentColor" />
       </svg>
     ),
   },
+];
+
+// Tier 2: Sub-Tabs for School Grades: 1 - 11 ශ්‍රේණි (Provincial Papers & Term Test Papers)
+export const GRADE_SUB_TABS = [
   {
     id: "Provincial",
-    label: "පළාත් / වාර විභාග (Provincial Papers)",
-    shortLabel: "Provincial",
+    label: "පළාත් විභාග ප්‍රශ්න පත්‍ර (Provincial Papers)",
+    shortLabel: "Provincial Papers",
     icon: (
-      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ),
   },
+  {
+    id: "Term",
+    label: "වාර විභාග ප්‍රශ්න පත්‍ර (Term Test Papers)",
+    shortLabel: "Term Test Papers",
+    icon: (
+      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+      </svg>
+    ),
+  },
 ];
 
-// Helper to determine Paper Type (Past / Model / Provincial)
-export const getPaperType = (paper) => {
+// Helper to check if paper is a Model Paper
+export const isModel = (paper) => {
   const c = (paper.category || "").toLowerCase();
   const t = (paper.title || "").toLowerCase();
-
-  if (
-    c === "provincial" ||
-    t.includes("provinc") ||
-    t.includes("term test") ||
-    t.includes("evaluation") ||
-    t.includes("pre test") ||
-    t.includes("පළාත්") ||
-    t.includes("වාර විභාග")
-  ) {
-    return "Provincial";
-  }
-
-  if (c === "model" || t.includes("model") || t.includes("ආදර්ශ")) {
-    return "Model";
-  }
-
-  return "Past";
+  return c === "model" || t.includes("model") || t.includes("ආදර්ශ");
 };
 
-// Helper to check if paper matches selected Exam Level
-export const matchesLevel = (paper, level) => {
+// Helper to check if paper is a Provincial Department Paper
+export const isProvincial = (paper) => {
+  const c = (paper.category || "").toLowerCase();
+  const t = (paper.title || "").toLowerCase();
+  const s = (paper.subject || "").toLowerCase();
+  return (
+    c === "provincial" ||
+    t.includes("provinc") ||
+    t.includes("පළාත්") ||
+    s.includes("පළාත්") ||
+    t.includes("western") ||
+    t.includes("central") ||
+    t.includes("southern") ||
+    t.includes("north western") ||
+    t.includes("north central") ||
+    t.includes("northern") ||
+    t.includes("eastern") ||
+    t.includes("uva") ||
+    t.includes("sabaragamuwa") ||
+    t.includes("බස්නාහිර") ||
+    t.includes("දකුණු") ||
+    t.includes("මධ්‍යම") ||
+    t.includes("වයඹ") ||
+    t.includes("උතුරු මැද") ||
+    t.includes("ඌව") ||
+    t.includes("සබරගමුව")
+  );
+};
+
+// Helper to check if paper is a School Term Test / Evaluation Paper
+export const isTermTest = (paper) => {
+  const c = (paper.category || "").toLowerCase();
+  const t = (paper.title || "").toLowerCase();
+  return (
+    c === "term" ||
+    c === "term test" ||
+    t.includes("term test") ||
+    t.includes("term") ||
+    t.includes("වාර") ||
+    t.includes("වාර විභාග") ||
+    t.includes("evaluation") ||
+    t.includes("pre test") ||
+    t.includes("assessment") ||
+    t.includes("school") ||
+    !isProvincial(paper)
+  );
+};
+
+// Helper to check if paper matches selected Paper Type / Sub-Tab
+export const matchesPaperType = (paper, paperType, category = "O/L") => {
+  if (paperType === "All") return true;
+
+  if (category === "Grade 1-11" || category === "Grade 6-11") {
+    if (paperType === "Provincial") {
+      return isProvincial(paper);
+    }
+    if (paperType === "Term") {
+      return isTermTest(paper);
+    }
+    return true;
+  }
+
+  // O/L, A/L, Grade 5
+  if (paperType === "Model") {
+    return isModel(paper);
+  }
+  return !isModel(paper);
+};
+
+// Helper to check if paper matches selected Exam Level / Grade category
+export const matchesLevel = (paper, level, selectedGrade = "All") => {
   if (level === "All") return true;
   const c = (paper.category || "").toLowerCase();
   const t = (paper.title || "").toLowerCase();
@@ -162,6 +341,8 @@ export const matchesLevel = (paper, level) => {
       t.includes("ordinary level") ||
       t.includes("grade 11") ||
       t.includes("grade 10") ||
+      t.includes("10 ශ්‍රේණිය") ||
+      t.includes("11 ශ්‍රේණිය") ||
       t.includes("සාමාන්‍ය පෙළ")
     );
   }
@@ -172,6 +353,8 @@ export const matchesLevel = (paper, level) => {
       t.includes("advanced level") ||
       t.includes("grade 12") ||
       t.includes("grade 13") ||
+      t.includes("12 ශ්‍රේණිය") ||
+      t.includes("13 ශ්‍රේණිය") ||
       t.includes("උසස් පෙළ")
     );
   }
@@ -184,14 +367,42 @@ export const matchesLevel = (paper, level) => {
       t.includes("ශිෂ්‍යත්ව")
     );
   }
+  if (
+    level === "Grade 1-11" ||
+    level === "Grade 6-11" ||
+    level === "Grade 6-9" ||
+    level === "Junior"
+  ) {
+    const isGrade1To11 = (
+      /grade\s*(?:1[0-1]|[1-9])\b/i.test(t) ||
+      /(?:1[0-1]|[1-9])\s*ශ්‍රේණිය/i.test(t) ||
+      /grade\s*(?:1[0-1]|[1-9])\b/i.test(c) ||
+      /(?:1[0-1]|[1-9])\s*ශ්‍රේණිය/i.test(c)
+    );
+    if (!isGrade1To11) return false;
+
+    if (selectedGrade && selectedGrade !== "All") {
+      const gNum = selectedGrade.replace(/\D/g, "");
+      const reg = new RegExp(`(grade\\s*${gNum}\\b|${gNum}\\s*ශ්‍රේණිය)`, "i");
+      return reg.test(t) || reg.test(c);
+    }
+    return true;
+  }
   return false;
 };
 
-// Helper to check if paper matches selected Paper Type
-export const matchesPaperType = (paper, paperType) => {
-  if (paperType === "All") return true;
-  return getPaperType(paper) === paperType;
+// Helper to extract Grade 1-11 badge if present
+export const getPaperGrade = (paper) => {
+  const text = `${paper.category || ""} ${paper.title || ""}`.toLowerCase();
+  for (let g = 1; g <= 11; g++) {
+    const reg = new RegExp(`(grade\\s*${g}\\b|${g}\\s*ශ්‍රේණිය)`, "i");
+    if (reg.test(text)) {
+      return `Grade ${g}`;
+    }
+  }
+  return null;
 };
+
 
 // Helper to determine or auto-detect A/L Stream
 export const getPaperStream = (paper) => {
@@ -400,10 +611,13 @@ export default function PapersGallery({ initialPapers = [] }) {
   const [selectedPaperType, setSelectedPaperType] = useState("Past");
   const [selectedYear, setSelectedYear] = useState("All");
   const [selectedStream, setSelectedStream] = useState("All");
+  const [selectedGrade, setSelectedGrade] = useState("All");
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
   const [alStreamDropdownOpen, setAlStreamDropdownOpen] = useState(false);
+  const [gradeDropdownOpen, setGradeDropdownOpen] = useState(false);
   const yearDropdownRef = useRef(null);
   const alStreamDropdownRef = useRef(null);
+  const gradeDropdownRef = useRef(null);
 
   // Close dropdowns on outside click or escape
   useEffect(() => {
@@ -414,15 +628,19 @@ export default function PapersGallery({ initialPapers = [] }) {
       if (alStreamDropdownRef.current && !alStreamDropdownRef.current.contains(e.target)) {
         setAlStreamDropdownOpen(false);
       }
+      if (gradeDropdownRef.current && !gradeDropdownRef.current.contains(e.target)) {
+        setGradeDropdownOpen(false);
+      }
     };
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         setYearDropdownOpen(false);
         setAlStreamDropdownOpen(false);
+        setGradeDropdownOpen(false);
       }
     };
 
-    if (yearDropdownOpen || alStreamDropdownOpen) {
+    if (yearDropdownOpen || alStreamDropdownOpen || gradeDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("touchstart", handleClickOutside);
       document.addEventListener("keydown", handleKeyDown);
@@ -432,7 +650,7 @@ export default function PapersGallery({ initialPapers = [] }) {
       document.removeEventListener("touchstart", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [yearDropdownOpen, alStreamDropdownOpen]);
+  }, [yearDropdownOpen, alStreamDropdownOpen, gradeDropdownOpen]);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Infinite Scroll Pagination State
@@ -488,7 +706,7 @@ export default function PapersGallery({ initialPapers = [] }) {
   // Reset infinite scroll count when any filter or search changes
   useEffect(() => {
     setVisibleCount(15);
-  }, [selectedCategory, selectedPaperType, selectedYear, selectedStream, searchQuery]);
+  }, [selectedCategory, selectedPaperType, selectedYear, selectedStream, selectedGrade, searchQuery]);
 
   // Compute unique years from papers
   const availableYears = useMemo(() => {
@@ -502,17 +720,36 @@ export default function PapersGallery({ initialPapers = [] }) {
     return ["All", ...years];
   }, [papers]);
 
-  // Category select handler (O/L, A/L, Grade 5)
+  // Category select handler (O/L, A/L, Grade 5, Grade 1-11)
   const handleSelectCategory = (catId) => {
     setSelectedCategory(catId);
     setAlStreamDropdownOpen(false);
+    setGradeDropdownOpen(false);
+
+    // Synchronize sub-tab based on category
+    if (catId === "Grade 1-11" || catId === "Grade 6-11") {
+      if (selectedPaperType !== "Provincial" && selectedPaperType !== "Term") {
+        setSelectedPaperType("Provincial");
+      }
+    } else {
+      if (selectedPaperType !== "Past" && selectedPaperType !== "Model") {
+        setSelectedPaperType("Past");
+      }
+    }
   };
 
-  // Dynamic counts for Paper Types (Past, Model, Provincial) matching current Level, Stream, and Year
+  // Determine which sub-tabs to show in Row 2 (Bottom Tier)
+  const currentSubTabs =
+    selectedCategory === "Grade 1-11" || selectedCategory === "Grade 6-11"
+      ? GRADE_SUB_TABS
+      : EXAM_SUB_TABS;
+
+  // Dynamic counts for Sub-Tabs (Past/Model or Provincial/Term) matching current Level, Stream, Grade, and Year
   const typeCounts = useMemo(() => {
-    const counts = { Past: 0, Model: 0, Provincial: 0 };
+    const counts = { Past: 0, Model: 0, Provincial: 0, Term: 0 };
+
     papers.forEach((paper) => {
-      if (!matchesLevel(paper, selectedCategory)) return;
+      if (!matchesLevel(paper, selectedCategory, selectedGrade)) return;
 
       // Filter counts by Stream when in A/L
       if (selectedCategory === "A/L" && selectedStream !== "All") {
@@ -531,25 +768,40 @@ export default function PapersGallery({ initialPapers = [] }) {
         if (!match) return;
       }
 
-      const type = getPaperType(paper);
-      if (counts[type] !== undefined) {
-        counts[type]++;
+      if (selectedCategory === "Grade 1-11" || selectedCategory === "Grade 6-11") {
+        if (isProvincial(paper)) counts.Provincial++;
+        if (isTermTest(paper)) counts.Term++;
+      } else {
+        if (isModel(paper)) counts.Model++;
+        else counts.Past++;
       }
     });
     return counts;
-  }, [papers, selectedCategory, selectedStream, selectedYear, searchQuery]);
+  }, [papers, selectedCategory, selectedStream, selectedGrade, selectedYear, searchQuery]);
 
-  // Filtered papers (matching Level, Stream for A/L, Paper Type, Year, and Search Query)
+  // Filtered papers (matching Level, Stream for A/L, Grade for Grade 1-11, Sub-Tab Type, Year, and Search Query)
   const filteredPapers = useMemo(() => {
-    const list = papers.filter((paper) => {
-      const matchesCat = matchesLevel(paper, selectedCategory);
-      const matchesType =
-        selectedCategory === "All" || selectedPaperType === "All"
-          ? true
-          : matchesPaperType(paper, selectedPaperType);
+    const isSearching = Boolean(searchQuery.trim());
+    const query = searchQuery.toLowerCase().trim();
 
-      // Filter by Stream for A/L
-      if (selectedCategory === "A/L" && selectedStream !== "All") {
+    const list = papers.filter((paper) => {
+      const matchesSearch =
+        !query ||
+        paper.title?.toLowerCase().includes(query) ||
+        paper.subject?.toLowerCase().includes(query) ||
+        paper.year?.toString().includes(query);
+
+      // When searching by keyword across all papers, don't restrict to current category/type unless matched
+      const matchesCat = isSearching ? true : matchesLevel(paper, selectedCategory, selectedGrade);
+
+      // Sub-tab type matching (Past/Model for O/L, A/L, Grade 5; Provincial/Term for Grade 1-11)
+      const matchesType =
+        isSearching || selectedCategory === "All" || selectedPaperType === "All"
+          ? true
+          : matchesPaperType(paper, selectedPaperType, selectedCategory);
+
+      // Filter by Stream for A/L (only when not globally searching)
+      if (!isSearching && selectedCategory === "A/L" && selectedStream !== "All") {
         const paperStream = getPaperStream(paper);
         if (paperStream !== selectedStream) return false;
       }
@@ -557,13 +809,6 @@ export default function PapersGallery({ initialPapers = [] }) {
       const matchesYr =
         selectedYear === "All" ||
         paper.year?.toString() === selectedYear.toString();
-
-      const query = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !query ||
-        paper.title?.toLowerCase().includes(query) ||
-        paper.subject?.toLowerCase().includes(query) ||
-        paper.year?.toString().includes(query);
 
       return matchesCat && matchesType && matchesYr && matchesSearch;
     });
@@ -600,7 +845,7 @@ export default function PapersGallery({ initialPapers = [] }) {
 
       return new Date(b.created_at || 0) - new Date(a.created_at || 0);
     });
-  }, [papers, selectedCategory, selectedPaperType, selectedYear, selectedStream, searchQuery]);
+  }, [papers, selectedCategory, selectedPaperType, selectedYear, selectedStream, selectedGrade, searchQuery]);
 
   // Infinite Scroll: Intersection Observer to reveal papers in batches of 15
   useEffect(() => {
@@ -796,64 +1041,61 @@ export default function PapersGallery({ initialPapers = [] }) {
         <SearchBooksBackground />
 
         <div className="relative max-w-5xl mx-auto text-center z-10">
-          {/* Unified 2-Tier Selection Capsule (Ultra-Premium Floating Glass Pedestal) */}
-          <div className="w-full max-w-full sm:w-auto inline-flex flex-col mx-auto p-1.5 sm:p-2 rounded-2xl sm:rounded-3xl bg-white/70 dark:bg-slate-900/55 backdrop-blur-2xl backdrop-saturate-150 border border-white/80 dark:border-white/10 shadow-xl shadow-slate-900/5 dark:shadow-black/60 relative mt-3 sm:mt-5 gap-1.5 sm:gap-2 transition-all duration-300">
-            {/* Subtle top inner glow rim */}
-            <div className="absolute top-0 inset-x-6 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
+          {/* ================= Unified Merged 2-Tier Selection Frame (Matching Gallery Card Roundness: rounded-xl sm:rounded-2xl) ================= */}
+          <div className="w-full max-w-4xl mx-auto rounded-xl sm:rounded-2xl border border-blue-500/50 dark:border-blue-400/35 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl shadow-xl shadow-blue-500/10 dark:shadow-black/70 relative mt-3 sm:mt-5 transition-all duration-300">
+            {/* Subtle top inner glow highlight */}
+            <div className="absolute top-0 inset-x-8 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent pointer-events-none" />
 
-            {/* Row 1: Exam Levels + Year Selector (Floating Segmented Capsule Track) */}
-            <div className="grid grid-cols-4 sm:flex sm:items-center gap-1 sm:gap-1.5 p-1 rounded-xl sm:rounded-2xl bg-slate-100/80 dark:bg-slate-950/50 border border-slate-200/60 dark:border-white/5 relative z-20">
-              {LEVEL_CATEGORIES.map((cat) => {
+            {/* Row 1: Top Tier (5 Columns: O/L, A/L, Scholarship, Grades 1-11, All Years - 2 Lines Per Tab) */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-blue-500/30 dark:divide-blue-400/20 border-b border-blue-500/40 dark:border-blue-400/30 bg-slate-50/80 dark:bg-slate-950/60 rounded-t-xl sm:rounded-t-2xl relative z-20">
+              {LEVEL_CATEGORIES.map((cat, idx) => {
                 const isActive = selectedCategory === cat.id;
 
-                // Special handling for A/L to include Stream Dropdown
+                // Special handling for A/L to include Stream Dropdown (2-Line layout)
                 if (cat.id === "A/L") {
                   const currentStreamObj = STREAM_OPTIONS.find((s) => s.value === selectedStream);
-                  const isStreamActive = selectedStream !== "All";
 
                   return (
                     <div key={cat.id} ref={alStreamDropdownRef} className="relative sm:flex-1">
                       <button
                         type="button"
                         onClick={() => {
-                          setSelectedCategory("A/L");
+                          handleSelectCategory("A/L");
                           setAlStreamDropdownOpen((prev) => !prev);
+                          setGradeDropdownOpen(false);
+                          setYearDropdownOpen(false);
                         }}
-                        className={`w-full h-full flex items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-center leading-tight sm:whitespace-nowrap ${
+                        className={`w-full min-h-[56px] sm:min-h-[62px] flex flex-col items-center justify-center gap-0.5 px-2 py-2 sm:py-2.5 text-center leading-tight transition-all duration-200 cursor-pointer ${
                           isActive
-                            ? isStreamActive
-                              ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white font-black shadow-md shadow-purple-500/30 border border-white/20 scale-[1.01]"
-                              : "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white font-black shadow-md shadow-blue-500/25 border border-white/20 scale-[1.01]"
-                            : "text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-800/60 border border-transparent"
+                            ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white font-black relative z-20 -mb-[1px] sm:-mb-[2px] shadow-sm rounded-tr-xl sm:rounded-tr-none"
+                            : "text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-cyan-400 hover:bg-white/80 dark:hover:bg-slate-800/60"
                         }`}
                       >
-                        <span className="truncate">
-                          <span className="hidden sm:inline whitespace-nowrap">
-                            {selectedStream === "All"
-                              ? cat.label
-                              : `A/L • ${currentStreamObj?.short || selectedStream}`}
-                          </span>
-                          <span className="sm:hidden font-extrabold whitespace-nowrap">
-                            {selectedStream === "All"
-                              ? cat.shortLabel
-                              : `A/L (${currentStreamObj?.badge || selectedStream})`}
-                          </span>
+                        <span className="text-xs sm:text-[13px] font-bold sm:font-extrabold whitespace-nowrap leading-tight">
+                          උසස් පෙළ
                         </span>
-                        <svg
-                          className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
-                            alStreamDropdownOpen ? "rotate-180" : ""
-                          } ${isActive ? "text-white" : "text-slate-400 dark:text-slate-500"}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                        </svg>
+                        <span className="inline-flex items-center justify-center gap-1 text-[10px] sm:text-[11px] font-semibold sm:font-bold opacity-90 leading-tight">
+                          <span className="truncate max-w-[85px] sm:max-w-none">
+                            {selectedStream === "All"
+                              ? "(A/L)"
+                              : currentStreamObj?.short || selectedStream}
+                          </span>
+                          <svg
+                            className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                              alStreamDropdownOpen ? "rotate-180" : ""
+                            } ${isActive ? "text-white" : "text-slate-400 dark:text-slate-500"}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </span>
                       </button>
 
                       {/* A/L Stream Dropdown Menu (Floating Glass Popover) */}
                       {alStreamDropdownOpen && (
-                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 min-w-[260px] sm:min-w-[300px] w-max max-w-xs sm:max-w-md z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 min-w-[260px] sm:min-w-[300px] w-max max-w-xs sm:max-w-md z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
                           <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-purple-400/40 to-transparent pointer-events-none" />
 
                           <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between">
@@ -880,11 +1122,11 @@ export default function PapersGallery({ initialPapers = [] }) {
                                   key={str.value}
                                   type="button"
                                   onClick={() => {
-                                    setSelectedCategory("A/L");
+                                    handleSelectCategory("A/L");
                                     setSelectedStream(str.value);
                                     setAlStreamDropdownOpen(false);
                                   }}
-                                  className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-left select-none ${
+                                  className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-none text-xs font-bold transition-all cursor-pointer text-left select-none ${
                                     isSelected
                                       ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm shadow-purple-500/30 font-black"
                                       : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/90 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white"
@@ -929,57 +1171,186 @@ export default function PapersGallery({ initialPapers = [] }) {
                   );
                 }
 
+                // Special handling for Grade 1-11 to include Grade Dropdown (2-Line layout)
+                if (cat.id === "Grade 1-11" || cat.id === "Grade 6-11") {
+                  const currentGradeObj = GRADE_OPTIONS.find((g) => g.value === selectedGrade);
+
+                  return (
+                    <div key={cat.id} ref={gradeDropdownRef} className="relative sm:flex-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSelectCategory("Grade 1-11");
+                          setGradeDropdownOpen((prev) => !prev);
+                          setAlStreamDropdownOpen(false);
+                          setYearDropdownOpen(false);
+                        }}
+                        className={`w-full min-h-[56px] sm:min-h-[62px] flex flex-col items-center justify-center gap-0.5 px-2 py-2 sm:py-2.5 text-center leading-tight transition-all duration-200 cursor-pointer ${
+                          isActive
+                            ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white font-black relative z-20 -mb-[1px] sm:-mb-[2px] shadow-sm"
+                            : "text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-cyan-400 hover:bg-white/80 dark:hover:bg-slate-800/60"
+                        }`}
+                      >
+                        <span className="text-xs sm:text-[13px] font-bold sm:font-extrabold whitespace-nowrap leading-tight">
+                          1 - 11 ශ්‍රේණි
+                        </span>
+                        <span className="inline-flex items-center justify-center gap-1 text-[10px] sm:text-[11px] font-semibold sm:font-bold opacity-90 leading-tight">
+                          <span className="truncate max-w-[85px] sm:max-w-none">
+                            {selectedGrade === "All"
+                              ? "(Grades 1-11)"
+                              : currentGradeObj?.short || selectedGrade}
+                          </span>
+                          <svg
+                            className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                              gradeDropdownOpen ? "rotate-180" : ""
+                            } ${isActive ? "text-white" : "text-slate-400 dark:text-slate-500"}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </span>
+                      </button>
+
+                      {/* Grade 1-11 Dropdown Menu (Floating Glass Popover) */}
+                      {gradeDropdownOpen && (
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 min-w-[240px] sm:min-w-[280px] w-max max-w-xs sm:max-w-md z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
+                          <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-blue-400/40 to-transparent pointer-events-none" />
+
+                          <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between">
+                            <span>ශ්‍රේණිය තෝරන්න (Select Grade)</span>
+                            {selectedGrade !== "All" && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedGrade("All");
+                                }}
+                                className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer lowercase font-medium text-[10px]"
+                              >
+                                reset
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="max-h-64 overflow-y-auto space-y-1 p-0.5 custom-scrollbar mt-1">
+                            {GRADE_OPTIONS.map((gr) => {
+                              const isSelected = selectedGrade === gr.value;
+                              return (
+                                <button
+                                  key={gr.value}
+                                  type="button"
+                                  onClick={() => {
+                                    handleSelectCategory("Grade 1-11");
+                                    setSelectedGrade(gr.value);
+                                    setGradeDropdownOpen(false);
+                                  }}
+                                  className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-none text-xs font-bold transition-all cursor-pointer text-left select-none ${
+                                    isSelected
+                                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/30 font-black"
+                                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/90 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 truncate min-w-0">
+                                    <span className="text-base shrink-0">{gr.icon}</span>
+                                    <div className="truncate min-w-0">
+                                      <div className="truncate font-bold leading-tight">{gr.label}</div>
+                                      <div
+                                        className={`text-[10px] leading-tight truncate ${
+                                          isSelected ? "text-blue-100" : "text-slate-400 dark:text-slate-500"
+                                        }`}
+                                      >
+                                        {gr.sinhala}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {isSelected && (
+                                    <svg
+                                      className="w-3.5 h-3.5 shrink-0"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={3}
+                                        d="M5 13l4 4L19 7"
+                                      />
+                                    </svg>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Standard 2-Line buttons for O/L and Grade 5 (Scholarship)
                 return (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => handleSelectCategory(cat.id)}
-                    className={`flex items-center justify-center gap-1 sm:gap-2 px-1.5 sm:px-5 py-2 sm:py-2.5 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-center leading-tight sm:whitespace-nowrap sm:flex-1 ${
+                    className={`w-full min-h-[56px] sm:min-h-[62px] flex flex-col items-center justify-center gap-0.5 px-2 py-2 sm:py-2.5 text-center leading-tight sm:flex-1 transition-all duration-200 cursor-pointer ${
                       isActive
-                        ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white font-black shadow-md shadow-blue-500/25 border border-white/20 scale-[1.01]"
-                        : "text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-800/60 border border-transparent"
-                    }`}
+                        ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white font-black relative z-20 -mb-[1px] sm:-mb-[2px] shadow-sm"
+                        : "text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-cyan-400 hover:bg-white/80 dark:hover:bg-slate-800/60"
+                    } ${idx === 0 ? "rounded-tl-xl sm:rounded-tl-2xl" : ""}`}
                   >
-                    <span className="hidden sm:inline whitespace-nowrap">{cat.label}</span>
-                    <span className="sm:hidden font-extrabold break-words">{cat.shortLabel}</span>
+                    <span className="text-xs sm:text-[13px] font-bold sm:font-extrabold whitespace-nowrap leading-tight">
+                      {cat.title || cat.label}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] font-semibold sm:font-bold opacity-90 whitespace-nowrap leading-tight">
+                      {cat.sub || `(${cat.shortLabel})`}
+                    </span>
                   </button>
                 );
               })}
 
-              {/* Year Selector integrated as the 4th Pill in Row 1 */}
-              <div ref={yearDropdownRef} className="relative sm:flex-1">
+              {/* Year Selector integrated as 5th column in Row 1 (2-Line layout) */}
+              <div ref={yearDropdownRef} className="relative col-span-2 sm:col-span-1 sm:flex-1">
                 <button
                   type="button"
-                  onClick={() => setYearDropdownOpen((prev) => !prev)}
-                  className={`w-full h-full flex items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-center leading-tight sm:whitespace-nowrap ${
+                  onClick={() => {
+                    setYearDropdownOpen((prev) => !prev);
+                    setAlStreamDropdownOpen(false);
+                    setGradeDropdownOpen(false);
+                  }}
+                  className={`w-full min-h-[56px] sm:min-h-[62px] flex flex-col items-center justify-center gap-0.5 px-2 py-2 sm:py-2.5 text-center leading-tight transition-all duration-200 cursor-pointer rounded-tr-none sm:rounded-tr-2xl ${
                     selectedYear !== "All"
-                      ? "bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white font-black shadow-md shadow-cyan-500/25 border border-white/20 scale-[1.01]"
-                      : "text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-800/60 border border-transparent"
+                      ? "bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white font-black"
+                      : "text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-cyan-400 hover:bg-white/80 dark:hover:bg-slate-800/60"
                   }`}
                 >
-                  <span className="truncate">
-                    <span className="hidden sm:inline whitespace-nowrap">
-                      {selectedYear === "All" ? "සියලුම වසර (All Years)" : `${selectedYear} විභාග`}
-                    </span>
-                    <span className="sm:hidden font-extrabold whitespace-nowrap">
-                      {selectedYear === "All" ? "All Years" : selectedYear}
-                    </span>
+                  <span className="text-xs sm:text-[13px] font-bold sm:font-extrabold whitespace-nowrap leading-tight">
+                    සියලුම වසර
                   </span>
-                  <svg
-                    className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
-                      yearDropdownOpen ? "rotate-180" : ""
-                    } ${selectedYear !== "All" ? "text-white" : "text-slate-400 dark:text-slate-500"}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <span className="inline-flex items-center justify-center gap-1 text-[10px] sm:text-[11px] font-semibold sm:font-bold opacity-90 leading-tight">
+                    <span className="truncate max-w-[85px] sm:max-w-none">
+                      {selectedYear === "All" ? "(All Years)" : `${selectedYear} විභාග`}
+                    </span>
+                    <svg
+                      className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                        yearDropdownOpen ? "rotate-180" : ""
+                      } ${selectedYear !== "All" ? "text-white" : "text-slate-400 dark:text-slate-500"}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
                 </button>
 
                 {/* Year Dropdown Menu (Floating Glass Popover) */}
                 {yearDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-2 min-w-[210px] w-max max-w-xs sm:max-w-sm z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
+                  <div className="absolute right-0 top-full mt-2 min-w-[210px] w-max max-w-xs sm:max-w-sm z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
                     <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
 
                     <div className="max-h-60 overflow-y-auto space-y-1 p-0.5 custom-scrollbar">
@@ -993,7 +1364,7 @@ export default function PapersGallery({ initialPapers = [] }) {
                               setSelectedYear(yr);
                               setYearDropdownOpen(false);
                             }}
-                            className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-left select-none ${
+                            className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-none text-xs font-bold transition-all cursor-pointer text-left select-none ${
                               isSelected
                                 ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/30 font-black"
                                 : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/90 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white"
@@ -1042,45 +1413,34 @@ export default function PapersGallery({ initialPapers = [] }) {
               </div>
             </div>
 
-            {/* Row 2: Paper Types (Past, Model, Provincial) (Floating Segmented Capsule Track) */}
-            <div className="grid grid-cols-3 sm:flex sm:items-center gap-1 sm:gap-1.5 p-1 rounded-xl sm:rounded-2xl bg-slate-100/80 dark:bg-slate-950/50 border border-slate-200/60 dark:border-white/5 relative z-10">
-              {PAPER_TYPES.map((type) => {
+            {/* Row 2: Bottom Tier (2 Equal Columns: 50% / 50% with Distinct Rich Violet / Purple Gradient) */}
+            <div
+              key={selectedCategory === "Grade 1-11" || selectedCategory === "Grade 6-11" ? "grade-tabs" : "exam-tabs"}
+              className="grid grid-cols-2 divide-x divide-blue-500/30 dark:divide-blue-400/20 bg-white/40 dark:bg-slate-900/40 rounded-b-xl sm:rounded-b-2xl relative z-10 transition-all duration-300"
+            >
+              {currentSubTabs.map((type, idx) => {
                 const isActive = selectedPaperType === type.id;
                 const count = typeCounts[type.id] || 0;
-
-                // Unique luminous gradient for each active paper type
-                const activeGradients = {
-                  Past: "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-md shadow-blue-500/25 border-white/20",
-                  Model: "bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 text-white shadow-md shadow-purple-500/25 border-white/20",
-                  Provincial: "bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 text-white shadow-md shadow-emerald-500/25 border-white/20",
-                };
-
-                const typeColors = {
-                  Past: "text-blue-500 dark:text-blue-400",
-                  Model: "text-purple-500 dark:text-purple-400",
-                  Provincial: "text-emerald-500 dark:text-emerald-400",
-                };
-
                 return (
                   <button
                     key={type.id}
                     type="button"
                     onClick={() => setSelectedPaperType(type.id)}
-                    className={`flex items-center justify-center gap-1 sm:gap-2 px-1.5 sm:px-5 py-2 sm:py-2.5 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all duration-200 cursor-pointer text-center leading-tight sm:whitespace-nowrap sm:flex-1 border ${
+                    className={`w-full min-h-[46px] sm:min-h-[50px] flex items-center justify-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer select-none leading-tight ${
                       isActive
-                        ? `${activeGradients[type.id] || activeGradients.Past} font-black scale-[1.01]`
-                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-800/60 border-transparent"
-                    }`}
+                        ? "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-black relative z-20 -mt-[1px] sm:-mt-[2px] shadow-md shadow-purple-500/25"
+                        : "text-slate-700 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-white/80 dark:hover:bg-slate-800/60"
+                    } ${idx === 0 ? "rounded-bl-xl sm:rounded-bl-2xl" : "rounded-br-xl sm:rounded-br-2xl"}`}
                   >
-                    <span className={`shrink-0 transition-transform duration-200 ${isActive ? "text-white scale-110" : typeColors[type.id] || "text-blue-500"}`}>
+                    <span className={`shrink-0 ${isActive ? "text-white" : "text-violet-500 dark:text-violet-400"}`}>
                       {type.icon}
                     </span>
                     <span className="hidden sm:inline whitespace-nowrap">{type.label}</span>
-                    <span className="sm:hidden font-extrabold break-words">{type.shortLabel}</span>
+                    <span className="sm:hidden font-extrabold whitespace-nowrap">{type.shortLabel}</span>
                     <span
-                      className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[9.5px] sm:text-[10.5px] font-black shrink-0 transition-all ${
+                      className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black shrink-0 ${
                         isActive
-                          ? "bg-white/25 text-white shadow-2xs border border-white/30 backdrop-blur-xs"
+                          ? "bg-white/20 text-white border border-white/30 backdrop-blur-xs"
                           : "bg-slate-200/80 dark:bg-slate-800/90 text-slate-600 dark:text-slate-400 border border-slate-300/50 dark:border-white/5"
                       }`}
                     >
@@ -1171,6 +1531,7 @@ export default function PapersGallery({ initialPapers = [] }) {
                       const streamBadge = paperStream
                         ? getStreamBadgeConfig(paperStream)
                         : null;
+                      const paperGrade = getPaperGrade(paper);
 
                       return (
                         <div
@@ -1178,7 +1539,7 @@ export default function PapersGallery({ initialPapers = [] }) {
                           className="group relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:border-blue-500/50 dark:hover:border-blue-500/50 shadow-xs hover:shadow-md hover:shadow-blue-500/5 hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-3.5 flex flex-col justify-between"
                         >
                           <div>
-                            {/* Top Bar: Category on Left, Stream (for A/L), Year on Right */}
+                            {/* Top Bar: Category on Left, Stream (for A/L), Grade (for 6-9), Year on Right */}
                             <div className="flex items-center justify-between gap-1.5 mb-2">
                               <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                                 <span
@@ -1197,6 +1558,19 @@ export default function PapersGallery({ initialPapers = [] }) {
                                   >
                                     <span className="text-[10.5px] leading-none shrink-0">{streamBadge.icon}</span>
                                     <span className="truncate">{streamBadge.label}</span>
+                                  </span>
+                                )}
+
+                                {/* Grade Badge for School (Grades 1-11) papers */}
+                                {paperGrade && (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[9.5px] font-extrabold px-2 py-0.5 rounded-md border shadow-2xs bg-amber-50/90 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/90 dark:border-amber-800/60"
+                                    title={`ශ්‍රේණිය: ${paperGrade}`}
+                                  >
+                                    <span className="text-[10px] leading-none shrink-0">
+                                      {GRADE_OPTIONS.find((g) => g.value === paperGrade)?.icon || "📚"}
+                                    </span>
+                                    <span>{paperGrade}</span>
                                   </span>
                                 )}
                               </div>
