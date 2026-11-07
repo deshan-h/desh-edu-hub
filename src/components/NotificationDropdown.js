@@ -171,56 +171,107 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
       .slice(0, 12);
   }, [papers]);
 
-  // Unread counts
+  // Filter out any notifications that have been marked as read/dismissed
+  const visibleFulfilledRequests = useMemo(() => {
+    return myFulfilledRequests.filter(
+      (item) => !dismissedNotificationIds.includes(String(item.id))
+    );
+  }, [myFulfilledRequests, dismissedNotificationIds]);
+
+  const visibleRecentPapers = useMemo(() => {
+    return recentPapers.filter(
+      (p) => !dismissedNotificationIds.includes(String(p.id))
+    );
+  }, [recentPapers, dismissedNotificationIds]);
+
+  const totalVisibleNotifications =
+    visibleFulfilledRequests.length + visibleRecentPapers.length;
+
+  // Unread counts: only count unread items that haven't been dismissed/cleared
   const unreadCount = useMemo(() => {
     let count = 0;
     const lastRead = lastReadTime ? new Date(lastReadTime).getTime() : 0;
 
-    // 1. Fulfilled requests that haven't been dismissed
-    myFulfilledRequests.forEach((item) => {
-      if (!dismissedNotificationIds.includes(item.id)) {
-        const itemTime = new Date(item.fulfilledAt).getTime();
-        if (itemTime > lastRead) count++;
-      }
+    visibleFulfilledRequests.forEach((item) => {
+      const itemTime = new Date(item.fulfilledAt).getTime();
+      if (itemTime > lastRead) count++;
     });
 
-    // 2. Newly added papers since last read
-    recentPapers.forEach((p) => {
+    visibleRecentPapers.forEach((p) => {
       const pTime = new Date(p.created_at || 0).getTime();
       if (pTime > lastRead) count++;
     });
 
     return count;
-  }, [myFulfilledRequests, recentPapers, lastReadTime, dismissedNotificationIds]);
+  }, [visibleFulfilledRequests, visibleRecentPapers, lastReadTime]);
 
-  // Mark all as read
+  // Mark all as read & clear them from list
   const handleMarkAllAsRead = () => {
     const nowIso = new Date().toISOString();
     setLastReadTime(nowIso);
+
+    // Collect all visible notification IDs to dismiss and clear
+    const allIdsToDismiss = [
+      ...visibleFulfilledRequests.map((item) => String(item.id)),
+      ...visibleRecentPapers.map((p) => String(p.id)),
+    ];
+
+    const updatedDismissed = Array.from(
+      new Set([...dismissedNotificationIds, ...allIdsToDismiss])
+    );
+    setDismissedNotificationIds(updatedDismissed);
+
     try {
       localStorage.setItem("desh_notifications_last_read", nowIso);
+      localStorage.setItem("desh_dismissed_notifs", JSON.stringify(updatedDismissed));
+
+      // Also dismiss any corresponding return visit alerts
+      const alertKeysToDismiss = visibleFulfilledRequests.map(
+        (item) => `alert_${item.request?.id || `${item.request?.subject}_${item.request?.year}`}`
+      );
+      const currentAlerts = JSON.parse(localStorage.getItem("desh_dismissed_alerts") || "[]");
+      const updatedAlerts = Array.from(new Set([...currentAlerts, ...alertKeysToDismiss]));
+      localStorage.setItem("desh_dismissed_alerts", JSON.stringify(updatedAlerts));
     } catch (e) {
       console.warn(e);
     }
   };
 
-  const handleToggle = () => {
-    if (!isOpen && unreadCount > 0) {
-      // Mark read when user opens the dropdown
-      handleMarkAllAsRead();
+  // Dismiss a single notification item
+  const handleDismissItem = (id, e) => {
+    if (e) e.stopPropagation();
+    const updated = Array.from(new Set([...dismissedNotificationIds, String(id)]));
+    setDismissedNotificationIds(updated);
+    try {
+      localStorage.setItem("desh_dismissed_notifs", JSON.stringify(updated));
+    } catch (err) {
+      console.warn(err);
     }
+  };
+
+  const handleToggle = () => {
     setIsOpen(!isOpen);
   };
 
   // Actions
-  const handleViewPaper = (paper) => {
+  const handleViewPaper = (paper, notificationId = null) => {
     if (!paper) return;
+    if (notificationId) {
+      handleDismissItem(notificationId);
+    } else if (paper.id) {
+      handleDismissItem(paper.id);
+    }
     setIsOpen(false);
     window.dispatchEvent(new CustomEvent("desh_view_paper", { detail: paper }));
   };
 
-  const handleDownloadPaper = (paper) => {
+  const handleDownloadPaper = (paper, notificationId = null) => {
     if (!paper) return;
+    if (notificationId) {
+      handleDismissItem(notificationId);
+    } else if (paper.id) {
+      handleDismissItem(paper.id);
+    }
     setIsOpen(false);
     window.dispatchEvent(new CustomEvent("desh_download_paper", { detail: paper }));
   };
@@ -301,14 +352,22 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleMarkAllAsRead}
-              className="text-[11px] font-bold text-blue-600 hover:text-blue-700 dark:text-cyan-400 dark:hover:text-cyan-300 hover:underline shrink-0 cursor-pointer"
-              title="සියල්ල කියවූ ලෙස සලකුණු කරන්න"
-            >
-              Mark read ✓
-            </button>
+            {totalVisibleNotifications > 0 ? (
+              <button
+                type="button"
+                onClick={handleMarkAllAsRead}
+                className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-[11px] font-bold text-blue-600 dark:text-cyan-400 transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                title="සියල්ල කියවූ ලෙස සලකුණු කර ඉවත් කරන්න (Clear All)"
+              >
+                <span>Clear all</span>
+                <span>✓</span>
+              </button>
+            ) : (
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <span>All clear</span>
+                <span>✓</span>
+              </span>
+            )}
           </div>
 
           {/* Filter Pills */}
@@ -325,7 +384,7 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
               සියල්ල (All)
             </button>
 
-            {myFulfilledRequests.length > 0 && (
+            {visibleFulfilledRequests.length > 0 && (
               <button
                 type="button"
                 onClick={() => setActiveFilter("requests")}
@@ -337,7 +396,7 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
               >
                 <span>🎉 මගේ ඉල්ලීම්</span>
                 <span className="w-4 h-4 rounded-full bg-emerald-500 text-white text-[9px] flex items-center justify-center font-black">
-                  {myFulfilledRequests.length}
+                  {visibleFulfilledRequests.length}
                 </span>
               </button>
             )}
@@ -360,7 +419,7 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
             
             {/* 1. PERSONAL FULFILLED REQUESTS (ONLY FOR THIS USER) */}
             {(activeFilter === "all" || activeFilter === "requests") &&
-              myFulfilledRequests.map((item) => (
+              visibleFulfilledRequests.map((item) => (
                 <div
                   key={item.id}
                   className="relative p-3 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-blue-950/30 border border-emerald-500/30 dark:border-emerald-500/40 shadow-xs space-y-2 animate-in fade-in"
@@ -372,9 +431,19 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
                         <span>ඔබ ඉල්ලූ ප්‍රශ්න පත්‍රය (Your Request)</span>
                       </span>
                     </div>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
-                      {formatTimeAgo(item.fulfilledAt)}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
+                        {formatTimeAgo(item.fulfilledAt)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDismissItem(item.id, e)}
+                        className="w-5 h-5 rounded-md hover:bg-slate-200/80 dark:hover:bg-slate-700/80 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center text-xs transition cursor-pointer"
+                        title="ඉවත් කරන්න (Clear)"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
                   <div>
@@ -391,7 +460,7 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
                     {item.paper && (
                       <button
                         type="button"
-                        onClick={() => handleViewPaper(item.paper)}
+                        onClick={() => handleViewPaper(item.paper, item.id)}
                         className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                       >
                         <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,7 +473,7 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
                     {item.paper && (
                       <button
                         type="button"
-                        onClick={() => handleDownloadPaper(item.paper)}
+                        onClick={() => handleDownloadPaper(item.paper, item.id)}
                         className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
                       >
                         <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -419,14 +488,14 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
 
             {/* 2. NEWLY ADDED PAPERS (SHOWN TO ALL USERS) */}
             {(activeFilter === "all" || activeFilter === "new") &&
-              recentPapers.map((paper) => {
+              visibleRecentPapers.map((paper) => {
                 const isNew =
                   lastReadTime && new Date(paper.created_at || 0).getTime() > new Date(lastReadTime).getTime();
 
                 return (
                   <div
                     key={paper.id}
-                    onClick={() => handleViewPaper(paper)}
+                    onClick={() => handleViewPaper(paper, paper.id)}
                     className="p-2.5 rounded-xl hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition cursor-pointer flex flex-col gap-1 group border border-transparent hover:border-slate-200 dark:hover:border-slate-700/60"
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -453,6 +522,14 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                           {formatTimeAgo(paper.created_at)}
                         </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDismissItem(paper.id, e)}
+                          className="w-5 h-5 rounded-md hover:bg-slate-200/80 dark:hover:bg-slate-700/80 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center text-xs transition cursor-pointer opacity-80 hover:opacity-100"
+                          title="ඉවත් කරන්න (Clear)"
+                        >
+                          ✕
+                        </button>
                       </div>
                     </div>
 
@@ -474,7 +551,7 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDownloadPaper(paper);
+                            handleDownloadPaper(paper, paper.id);
                           }}
                           className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
                         >
@@ -487,17 +564,19 @@ export default function NotificationDropdown({ papers = [], isMobile = false }) 
               })}
 
             {/* Empty State */}
-            {((activeFilter === "requests" && myFulfilledRequests.length === 0) ||
-              (recentPapers.length === 0 && myFulfilledRequests.length === 0)) && (
-              <div className="py-8 px-4 text-center space-y-2">
-                <span className="text-3xl block">📭</span>
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            {((activeFilter === "requests" && visibleFulfilledRequests.length === 0) ||
+              (visibleRecentPapers.length === 0 && visibleFulfilledRequests.length === 0)) && (
+              <div className="py-10 px-4 text-center space-y-2.5">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 mx-auto flex items-center justify-center text-xl font-black">
+                  ✓
+                </div>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                   {activeFilter === "requests"
                     ? "ඔබ විසින් ඉල්ලූ ප්‍රශ්න පත්‍ර තවමත් එක් කර නොමැත"
-                    : "දැනට නව දැනුම්දීම් කිසිවක් නොමැත"}
+                    : "සියලු දැනුම්දීම් කියවා ඉවත් කර ඇත (All Cleared)"}
                 </p>
                 <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
-                  අලුතින් ප්‍රශ්න පත්‍ර එක් වූ විට හෝ ඔබ ඉල්ලූ ප්‍රශ්න පත්‍රයක් එක් කළ විට මෙහි දිස්වනු ඇත.
+                  නව ප්‍රශ්න පත්‍රයක් හෝ ඔබ ඉල්ලූ ප්‍රශ්න පත්‍රයක් එක් වූ විට මෙහි දිස්වනු ඇත.
                 </p>
               </div>
             )}

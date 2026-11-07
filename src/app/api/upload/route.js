@@ -32,6 +32,7 @@ export async function POST(request) {
     const subject = formData.get("subject");
     const year = formData.get("year");
     const stream = formData.get("stream");
+    const grade = formData.get("grade");
     const hasAnswers =
       formData.get("has_answers") === "true" ||
       formData.get("with_answers") === "true";
@@ -285,22 +286,28 @@ export async function POST(request) {
       insertPayload.stream = stream.toString().trim();
     }
 
+    if (grade && grade.toString().trim() && grade.toString().trim() !== "None / General") {
+      insertPayload.grade = grade.toString().trim();
+    }
+
     let { data, error: dbError } = await supabase
       .from("papers")
       .insert([insertPayload])
       .select();
 
-    // Gracefully handle if 'has_answers' or 'stream' column doesn't exist yet in Supabase
+    // Gracefully handle if optional columns ('has_answers', 'stream', 'grade') don't exist yet in Supabase
     if (
       dbError &&
       (dbError.message?.includes("has_answers") ||
         dbError.message?.includes("stream") ||
+        dbError.message?.includes("grade") ||
         dbError.code === "PGRST204" ||
         dbError.code === "42703")
     ) {
-      console.warn("Column has_answers or stream missing in Supabase, retrying without optional columns...");
+      console.warn("Optional column missing in Supabase, retrying without optional columns...");
       delete insertPayload.has_answers;
       delete insertPayload.stream;
+      delete insertPayload.grade;
 
       const retryResult = await supabase
         .from("papers")

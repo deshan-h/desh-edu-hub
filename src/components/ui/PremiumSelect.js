@@ -163,7 +163,7 @@ export default function PremiumSelect({
                   aria-selected={isSelected}
                   disabled={opt.disabled}
                   onClick={() => handleSelect(opt.value)}
-                  className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-left select-none ${opt.disabled
+                  className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-none text-xs font-bold transition-all cursor-pointer text-left select-none ${opt.disabled
                       ? "opacity-40 cursor-not-allowed"
                       : isSelected
                         ? "bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-black"

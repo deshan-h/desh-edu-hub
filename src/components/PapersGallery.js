@@ -227,7 +227,7 @@ export const EXAM_SUB_TABS = [
   },
 ];
 
-// Tier 2: Sub-Tabs for School Grades: 1 - 11 ශ්‍රේණි (Provincial Papers & Term Test Papers)
+// Tier 2: Sub-Tabs for School Grades: 1 - 11 ශ්‍රේණි (Provincial Papers & Other Papers)
 export const GRADE_SUB_TABS = [
   {
     id: "Provincial",
@@ -242,8 +242,8 @@ export const GRADE_SUB_TABS = [
   },
   {
     id: "Term",
-    label: "වාර විභාග ප්‍රශ්න පත්‍ර (Term Test Papers)",
-    shortLabel: "Term Test Papers",
+    label: "වෙනත් ප්‍රශ්න පත්‍ර (Other Papers)",
+    shortLabel: "වෙනත් ප්‍රශ්න පත්‍ර",
     icon: (
       <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -252,20 +252,15 @@ export const GRADE_SUB_TABS = [
   },
 ];
 
-// Helper to check if paper is a Model Paper
-export const isModel = (paper) => {
-  const c = (paper.category || "").toLowerCase();
-  const t = (paper.title || "").toLowerCase();
-  return c === "model" || t.includes("model") || t.includes("ආදර්ශ");
-};
-
 // Helper to check if paper is a Provincial Department Paper
 export const isProvincial = (paper) => {
+  if (!paper) return false;
   const c = (paper.category || "").toLowerCase();
   const t = (paper.title || "").toLowerCase();
   const s = (paper.subject || "").toLowerCase();
   return (
     c === "provincial" ||
+    c === "province" ||
     t.includes("provinc") ||
     t.includes("පළාත්") ||
     s.includes("පළාත්") ||
@@ -288,44 +283,87 @@ export const isProvincial = (paper) => {
   );
 };
 
-// Helper to check if paper is a School Term Test / Evaluation Paper
+// Helper to check if paper is Other / School Term Test / Evaluation Paper
 export const isTermTest = (paper) => {
+  if (!paper || isProvincial(paper)) return false;
   const c = (paper.category || "").toLowerCase();
   const t = (paper.title || "").toLowerCase();
   return (
+    c === "other" ||
     c === "term" ||
     c === "term test" ||
+    c === "school" ||
+    t.includes("other") ||
+    t.includes("වෙනත්") ||
     t.includes("term test") ||
-    t.includes("term") ||
+    t.includes("1st term") ||
+    t.includes("2nd term") ||
+    t.includes("3rd term") ||
+    t.includes("first term") ||
+    t.includes("second term") ||
+    t.includes("third term") ||
     t.includes("වාර") ||
     t.includes("වාර විභාග") ||
     t.includes("evaluation") ||
     t.includes("pre test") ||
     t.includes("assessment") ||
-    t.includes("school") ||
-    !isProvincial(paper)
+    t.includes("school")
   );
+};
+
+// Helper to check if paper is a Model Paper
+export const isModel = (paper) => {
+  if (!paper || isProvincial(paper)) return false;
+  const c = (paper.category || "").toLowerCase();
+  const t = (paper.title || "").toLowerCase();
+  return c === "model" || t.includes("model") || t.includes("ආදර්ශ");
+};
+
+// Helper to extract Grade 1-11 badge if present
+export const getPaperGrade = (paper) => {
+  if (!paper) return null;
+  if (paper.grade && typeof paper.grade === "string" && paper.grade.trim()) {
+    return paper.grade.trim();
+  }
+  const text = `${paper.category || ""} ${paper.title || ""}`.toLowerCase();
+  for (let g = 11; g >= 1; g--) {
+    const reg = new RegExp(`(grade\\s*${g}\\b|${g}\\s*ශ්‍රේණිය)`, "i");
+    if (reg.test(text)) {
+      return `Grade ${g}`;
+    }
+  }
+  return null;
+};
+
+// Helper to check if paper is an official National Exam paper (O/L, A/L, Scholarship)
+export const isNationalExamPaper = (paper) => {
+  if (!paper || isProvincial(paper) || isTermTest(paper)) return false;
+  const c = (paper.category || "").toLowerCase();
+  return c === "o/l" || c === "a/l" || c === "grade 5" || c === "scholarship";
 };
 
 // Helper to check if paper matches selected Paper Type / Sub-Tab
 export const matchesPaperType = (paper, paperType, category = "O/L") => {
   if (paperType === "All") return true;
 
-  if (category === "Grade 1-11" || category === "Grade 6-11") {
+  if (category === "Grade 1-11" || category === "Grade 6-11" || category === "Junior") {
     if (paperType === "Provincial") {
       return isProvincial(paper);
     }
-    if (paperType === "Term") {
-      return isTermTest(paper);
+    if (paperType === "Term" || paperType === "Other") {
+      return !isProvincial(paper);
     }
     return true;
   }
 
   // O/L, A/L, Grade 5
   if (paperType === "Model") {
-    return isModel(paper);
+    return isModel(paper) && !isProvincial(paper) && !isTermTest(paper);
   }
-  return !isModel(paper);
+  if (paperType === "Past") {
+    return !isModel(paper) && !isProvincial(paper) && !isTermTest(paper);
+  }
+  return true;
 };
 
 // Helper to check if paper matches selected Exam Level / Grade category
@@ -334,73 +372,89 @@ export const matchesLevel = (paper, level, selectedGrade = "All") => {
   const c = (paper.category || "").toLowerCase();
   const t = (paper.title || "").toLowerCase();
 
+  const isProv = isProvincial(paper);
+  const isOther = isTermTest(paper);
+
   if (level === "O/L") {
+    if (isProv || isOther) return false;
     return (
       c === "o/l" ||
-      t.includes("o/l") ||
-      t.includes("ordinary level") ||
-      t.includes("grade 11") ||
-      t.includes("grade 10") ||
-      t.includes("10 ශ්‍රේණිය") ||
-      t.includes("11 ශ්‍රේණිය") ||
-      t.includes("සාමාන්‍ය පෙළ")
+      ((c === "model" || isModel(paper)) &&
+        (t.includes("o/l") || t.includes("ordinary level") || t.includes("සාමාන්‍ය පෙළ")))
     );
   }
+
   if (level === "A/L") {
+    if (isProv || isOther) return false;
     return (
       c === "a/l" ||
-      t.includes("a/l") ||
-      t.includes("advanced level") ||
-      t.includes("grade 12") ||
-      t.includes("grade 13") ||
-      t.includes("12 ශ්‍රේණිය") ||
-      t.includes("13 ශ්‍රේණිය") ||
-      t.includes("උසස් පෙළ")
+      ((c === "model" || isModel(paper)) &&
+        (t.includes("a/l") || t.includes("advanced level") || t.includes("උසස් පෙළ")))
     );
   }
+
   if (level === "Grade 5") {
+    if (isProv || isOther) return false;
     return (
       c === "grade 5" ||
-      t.includes("grade 5") ||
-      t.includes("5 ශ්‍රේණිය") ||
-      t.includes("scholarship") ||
-      t.includes("ශිෂ්‍යත්ව")
+      c === "scholarship" ||
+      ((c === "model" || isModel(paper)) &&
+        (t.includes("grade 5") || t.includes("scholarship") || t.includes("ශිෂ්‍යත්ව")))
     );
   }
+
   if (
     level === "Grade 1-11" ||
     level === "Grade 6-11" ||
     level === "Grade 6-9" ||
     level === "Junior"
   ) {
-    const isGrade1To11 = (
-      /grade\s*(?:1[0-1]|[1-9])\b/i.test(t) ||
-      /(?:1[0-1]|[1-9])\s*ශ්‍රේණිය/i.test(t) ||
-      /grade\s*(?:1[0-1]|[1-9])\b/i.test(c) ||
-      /(?:1[0-1]|[1-9])\s*ශ්‍රේණිය/i.test(c)
-    );
-    if (!isGrade1To11) return false;
+    // Never allow official national exam past papers into Grade 1-11
+    if (isNationalExamPaper(paper)) return false;
 
-    if (selectedGrade && selectedGrade !== "All") {
-      const gNum = selectedGrade.replace(/\D/g, "");
-      const reg = new RegExp(`(grade\\s*${gNum}\\b|${gNum}\\s*ශ්‍රේණිය)`, "i");
-      return reg.test(t) || reg.test(c);
+    // 1. All provincial papers belong to Grade 1-11
+    if (isProv) {
+      if (selectedGrade && selectedGrade !== "All") {
+        const pGrade = getPaperGrade(paper);
+        const gNum = selectedGrade.replace(/\D/g, "");
+        const reg = new RegExp(`(grade\\s*${gNum}\\b|${gNum}\\s*ශ්‍රේණිය)`, "i");
+        return (
+          (pGrade && pGrade.toLowerCase().includes(selectedGrade.toLowerCase())) ||
+          reg.test(t) ||
+          (paper.grade && reg.test(paper.grade))
+        );
+      }
+      return true;
     }
-    return true;
+
+    // 2. All school term test / other papers belong to Grade 1-11
+    if (isOther) {
+      if (selectedGrade && selectedGrade !== "All") {
+        const pGrade = getPaperGrade(paper);
+        const gNum = selectedGrade.replace(/\D/g, "");
+        const reg = new RegExp(`(grade\\s*${gNum}\\b|${gNum}\\s*ශ්‍රේණිය)`, "i");
+        return (
+          (pGrade && pGrade.toLowerCase().includes(selectedGrade.toLowerCase())) ||
+          reg.test(t) ||
+          (paper.grade && reg.test(paper.grade))
+        );
+      }
+      return true;
+    }
+
+    // 3. Any paper explicitly for Grades 1 to 11
+    const pGrade = getPaperGrade(paper);
+    if (pGrade) {
+      if (selectedGrade && selectedGrade !== "All") {
+        return pGrade.toLowerCase().includes(selectedGrade.toLowerCase());
+      }
+      return true;
+    }
+
+    return false;
   }
+
   return false;
-};
-
-// Helper to extract Grade 1-11 badge if present
-export const getPaperGrade = (paper) => {
-  const text = `${paper.category || ""} ${paper.title || ""}`.toLowerCase();
-  for (let g = 1; g <= 11; g++) {
-    const reg = new RegExp(`(grade\\s*${g}\\b|${g}\\s*ශ්‍රේණිය)`, "i");
-    if (reg.test(text)) {
-      return `Grade ${g}`;
-    }
-  }
-  return null;
 };
 
 
@@ -770,7 +824,7 @@ export default function PapersGallery({ initialPapers = [] }) {
 
       if (selectedCategory === "Grade 1-11" || selectedCategory === "Grade 6-11") {
         if (isProvincial(paper)) counts.Provincial++;
-        if (isTermTest(paper)) counts.Term++;
+        else counts.Term++;
       } else {
         if (isModel(paper)) counts.Model++;
         else counts.Past++;
@@ -1028,6 +1082,8 @@ export default function PapersGallery({ initialPapers = [] }) {
         return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/40";
       case "Model":
         return "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border-rose-200/80 dark:border-rose-800/40";
+      case "Other":
+        return "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/40";
       default:
         return "bg-slate-50 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/60";
     }
@@ -1095,7 +1151,7 @@ export default function PapersGallery({ initialPapers = [] }) {
 
                       {/* A/L Stream Dropdown Menu (Floating Glass Popover) */}
                       {alStreamDropdownOpen && (
-                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 min-w-[260px] sm:min-w-[300px] w-max max-w-xs sm:max-w-md z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 min-w-[260px] sm:min-w-[300px] w-max max-w-xs sm:max-w-md z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-none border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
                           <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-purple-400/40 to-transparent pointer-events-none" />
 
                           <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between">
@@ -1215,7 +1271,7 @@ export default function PapersGallery({ initialPapers = [] }) {
 
                       {/* Grade 1-11 Dropdown Menu (Floating Glass Popover) */}
                       {gradeDropdownOpen && (
-                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 min-w-[240px] sm:min-w-[280px] w-max max-w-xs sm:max-w-md z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 min-w-[240px] sm:min-w-[280px] w-max max-w-xs sm:max-w-md z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-none border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
                           <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-blue-400/40 to-transparent pointer-events-none" />
 
                           <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between">
@@ -1350,7 +1406,7 @@ export default function PapersGallery({ initialPapers = [] }) {
 
                 {/* Year Dropdown Menu (Floating Glass Popover) */}
                 {yearDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-2 min-w-[210px] w-max max-w-xs sm:max-w-sm z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
+                  <div className="absolute right-0 top-full mt-2 min-w-[210px] w-max max-w-xs sm:max-w-sm z-50 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-none border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/20 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 origin-top overflow-hidden text-left">
                     <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
 
                     <div className="max-h-60 overflow-y-auto space-y-1 p-0.5 custom-scrollbar">
@@ -1547,7 +1603,7 @@ export default function PapersGallery({ initialPapers = [] }) {
                                     paper.category
                                   )}`}
                                 >
-                                  {paper.category || "General"}
+                                  {paper.category === "Other" ? "වෙනත් (Other)" : paper.category || "General"}
                                 </span>
 
                                 {/* Stream Badge for A/L papers */}

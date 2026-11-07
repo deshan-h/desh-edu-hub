@@ -7689,6 +7689,30 @@
       "visit_date": "2026-11-07",
       "visited_at": "2026-11-06T20:54:48.568Z",
       "screen": "1874x929"
+    },
+    {
+      "page_path": "/",
+      "referrer": "http://localhost:3000/?reload=1793998470562",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "visit_date": "2026-11-07",
+      "visited_at": "2026-11-06T22:06:11.171Z",
+      "screen": "1394x749"
+    },
+    {
+      "page_path": "/",
+      "referrer": "http://localhost:3000/admin?reload=1794002782398",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "visit_date": "2026-11-07",
+      "visited_at": "2026-11-07T05:22:49.321Z",
+      "screen": "1394x749"
+    },
+    {
+      "page_path": "/",
+      "referrer": "http://localhost:3000/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "visit_date": "2026-11-07",
+      "visited_at": "2026-11-07T07:54:10.812Z",
+      "screen": "1394x749"
     }
   ]
 }

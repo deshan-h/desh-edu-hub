@@ -3,11 +3,21 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
 import DeshEduHubLogo from "@/components/DeshEduHubLogo";
 import PremiumSelect from "@/components/ui/PremiumSelect";
 
-const CATEGORIES = ["O/L", "A/L", "Grade 5", "Provincial", "Model"];
+const CATEGORIES = ["O/L", "A/L", "Grade 5", "Provincial", "Model", "Other"];
+
+const OTHER_PAPER_TYPES = [
+  "School Term Test",
+  "Provincial Term Test",
+  "Evaluation Paper",
+  "Monthly Test",
+  "Pre-Test Paper",
+  "Seminar Paper",
+  "Special Paper",
+  "Other Paper",
+];
 
 const PROVINCES = [
   "North Western Province",
@@ -32,6 +42,20 @@ const getProvinceFromText = (txt) => {
   return null;
 };
 
+// Sri Lankan Date helper (Asia/Colombo timezone)
+const getColomboDate = (date = new Date()) => {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Colombo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  } catch (e) {
+    return date.toISOString().slice(0, 10);
+  }
+};
+
 const PROVINCE_GRADES = [
   "Grade 11 (O/L)",
   "Grade 10",
@@ -43,6 +67,47 @@ const PROVINCE_GRADES = [
   "Grade 5",
 ];
 
+const EDIT_GRADE_OPTIONS = [
+  "None / General",
+  "Grade 1",
+  "Grade 2",
+  "Grade 3",
+  "Grade 4",
+  "Grade 5",
+  "Grade 6",
+  "Grade 7",
+  "Grade 8",
+  "Grade 9",
+  "Grade 10",
+  "Grade 11",
+  "Grade 12/13 (A/L)",
+];
+
+const detectGradeForPaper = (paper) => {
+  if (paper.grade && typeof paper.grade === "string" && paper.grade.trim()) {
+    const matched = EDIT_GRADE_OPTIONS.find((g) => g.toLowerCase() === paper.grade.trim().toLowerCase());
+    if (matched) return matched;
+    return paper.grade.trim();
+  }
+  const text = `${paper.category || ""} ${paper.title || ""}`.toLowerCase();
+  for (let g = 1; g <= 11; g++) {
+    const reg = new RegExp(`(grade\\s*${g}\\b|gr\\s*${g}\\b|${g}\\s*ශ්‍රේණිය)`, "i");
+    if (reg.test(text)) {
+      return `Grade ${g}`;
+    }
+  }
+  if (text.includes("a/l") || text.includes("advanced level") || text.includes("උසස් පෙළ")) {
+    return "Grade 12/13 (A/L)";
+  }
+  if (text.includes("o/l") || text.includes("ordinary level") || text.includes("සාමාන්‍ය පෙළ")) {
+    return "Grade 11";
+  }
+  if (text.includes("scholarship") || text.includes("ශිෂ්‍යත්ව")) {
+    return "Grade 5";
+  }
+  return "None / General";
+};
+
 const PROVINCE_TERMS = [
   "1st Term Test",
   "2nd Term Test",
@@ -53,13 +118,13 @@ const PROVINCE_TERMS = [
 const MEDIUMS = ["Sinhala Medium", "English Medium", "Tamil Medium"];
 
 const AL_STREAMS = [
-  { value: "Physical Science", label: "Physical Science (Combined Maths / භෞතික විද්‍යා)", badge: "Maths" },
-  { value: "Biological Science", label: "Biological Science (Bio / ජීව විද්‍යා)", badge: "Bio" },
-  { value: "Commerce", label: "Commerce (වාණිජ අංශය)", badge: "Commerce" },
-  { value: "Arts", label: "Arts (කලා අංශය)", badge: "Arts" },
-  { value: "Technology", label: "Technology (තාක්ෂණවේදය)", badge: "Tech" },
-  { value: "Common General", label: "Common General (පොදු සාමාන්‍ය)", badge: "General" },
-  { value: "Other", label: "Other / Vocational (වෙනත්)", badge: "Other" },
+  { value: "Physical Science", label: "Physical Science (Combined Maths)", badge: "Maths" },
+  { value: "Biological Science", label: "Biological Science (Biology)", badge: "Bio" },
+  { value: "Commerce", label: "Commerce", badge: "Commerce" },
+  { value: "Arts", label: "Arts", badge: "Arts" },
+  { value: "Technology", label: "Technology", badge: "Tech" },
+  { value: "Common General", label: "Common General", badge: "General" },
+  { value: "Other", label: "Other / Vocational", badge: "Other" },
 ];
 
 const KNOWN_SUBJECTS = [
@@ -118,7 +183,9 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
 
   // Site Visits & Daily Traffic Analytics State
   const [visitsData, setVisitsData] = useState(initialVisits);
-  const [visitsDays, setVisitsDays] = useState(14); // 7 | 14 | 30
+  const [visitsDays, setVisitsDays] = useState(30); // 30 days window covers current month & comparisons
+  const [trafficPeriod, setTrafficPeriod] = useState("month"); // "month" | "30d" | "14d" | "7d"
+  const [hoveredPointIndex, setHoveredPointIndex] = useState(null);
   const [isLoadingVisits, setIsLoadingVisits] = useState(false);
   const [showSqlModal, setShowSqlModal] = useState(false);
   const [sqlCopied, setSqlCopied] = useState(false);
@@ -139,10 +206,28 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
     }
   };
 
-  useEffect(() => {
-    if (!initialVisits) {
-      handleFetchVisits(14);
+  // Cloudflare R2 Storage Stats State
+  const [storageStats, setStorageStats] = useState(null);
+  const [loadingStorage, setLoadingStorage] = useState(false);
+
+  const fetchStorageStats = async () => {
+    setLoadingStorage(true);
+    try {
+      const res = await fetch("/api/admin/storage");
+      const json = await res.json();
+      if (json.success && json.data) {
+        setStorageStats(json.data);
+      }
+    } catch (e) {
+      console.warn("Storage stats fetch error:", e);
+    } finally {
+      setLoadingStorage(false);
     }
+  };
+
+  useEffect(() => {
+    handleFetchVisits(30);
+    fetchStorageStats();
   }, []);
 
   // Paper Requests & Feedback State
@@ -151,7 +236,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
   const [requestsFilter, setRequestsFilter] = useState("all"); // "all" | "paper_request" | "feedback" | "pending"
 
   // Sub-tab state for Add Papers
-  const [paperSubTab, setPaperSubTab] = useState("passpaper"); // "passpaper" | "model" | "province"
+  const [paperSubTab, setPaperSubTab] = useState("passpaper"); // "passpaper" | "model" | "province" | "other"
 
   // Sub-tab specific configuration states
   const [passpaperLevel, setPasspaperLevel] = useState("O/L");
@@ -159,6 +244,8 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
   const [province, setProvince] = useState("Western Province");
   const [provinceTerm, setProvinceTerm] = useState("3rd Term Test");
   const [provinceGrade, setProvinceGrade] = useState("Grade 11 (O/L)");
+  const [otherGrade, setOtherGrade] = useState("Grade 11");
+  const [otherPaperType, setOtherPaperType] = useState("School Term Test");
   const [medium, setMedium] = useState("Sinhala Medium");
   const [alStream, setAlStream] = useState("Physical Science");
   const [hasAnswers, setHasAnswers] = useState(false);
@@ -239,6 +326,29 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
       window.location.href = url.toString();
     }, 300);
   };
+
+  // Dedicated Dashboard Refresh (Metrics, Visits, Requests)
+  const handleDashboardRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        handleFetchVisits(visitsDays),
+        fetchRequests(),
+        fetchStorageStats(),
+      ]);
+      showToast({
+        type: "success",
+        title: "Dashboard Refreshed",
+        message: "Latest visitor metrics, papers catalog, and requests updated.",
+        duration: 3000,
+      });
+    } catch (e) {
+      console.warn("Refresh error:", e);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
   const isProcessingQueue = useRef(false);
 
   const activeUploadsCount = useMemo(() => {
@@ -295,6 +405,9 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
         formPayload.append("year", item.year.toString());
         if (item.stream) {
           formPayload.append("stream", item.stream);
+        }
+        if (item.grade) {
+          formPayload.append("grade", item.grade);
         }
         formPayload.append("has_answers", item.has_answers ? "true" : "false");
 
@@ -356,6 +469,50 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
   // Filter / Search for Papers Table
   const [tableSearch, setTableSearch] = useState("");
   const [tableCategory, setTableCategory] = useState("All");
+  const [tableGrade, setTableGrade] = useState("All");
+  const [tableSubject, setTableSubject] = useState("All");
+  const [tableYear, setTableYear] = useState("All");
+  const [tableAnswers, setTableAnswers] = useState("All"); // "All" | "yes" | "no"
+  const [tableCurrentPage, setTableCurrentPage] = useState(1);
+  const TABLE_PAGE_SIZE = 20;
+
+  const availableTableSubjects = useMemo(() => {
+    const set = new Set();
+    papers.forEach((p) => {
+      if (p.subject && p.subject.trim()) set.add(p.subject.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [papers]);
+
+  const availableTableYears = useMemo(() => {
+    const set = new Set();
+    papers.forEach((p) => {
+      if (p.year) set.add(String(p.year));
+    });
+    return Array.from(set).sort((a, b) => Number(b) - Number(a));
+  }, [papers]);
+
+  const hasActiveTableFilters = useMemo(() => {
+    return (
+      Boolean(tableSearch) ||
+      tableCategory !== "All" ||
+      tableGrade !== "All" ||
+      tableSubject !== "All" ||
+      tableYear !== "All" ||
+      tableAnswers !== "All"
+    );
+  }, [tableSearch, tableCategory, tableGrade, tableSubject, tableYear, tableAnswers]);
+
+  const handleResetTableFilters = () => {
+    setTableSearch("");
+    setTableCategory("All");
+    setTableGrade("All");
+    setTableSubject("All");
+    setTableYear("All");
+    setTableAnswers("All");
+    setTableCurrentPage(1);
+  };
+
   const [deletingId, setDeletingId] = useState(null);
 
   // Edit Modal State
@@ -365,6 +522,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
     category: "O/L",
     subject: "",
     year: "",
+    grade: "None / General",
     has_answers: false,
   });
   const [updatingPaper, setUpdatingPaper] = useState(false);
@@ -379,12 +537,20 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
       paper.title?.toLowerCase().includes("with answers") ||
       paper.title?.includes("පිළිතුරු");
 
+    const detectedGrade = detectGradeForPaper(paper);
+
+    let initialCat = paper.category || "O/L";
+    if (initialCat.toLowerCase() === "term" || initialCat.toLowerCase() === "term test") {
+      initialCat = "Other";
+    }
+
     setEditFormData({
       title: paper.title || "",
-      category: paper.category || "O/L",
+      category: initialCat,
       subject: paper.subject || "",
       year: paper.year?.toString() || "",
       stream: paper.stream || "Physical Science",
+      grade: detectedGrade,
       has_answers: isAnswers,
     });
   };
@@ -462,6 +628,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
           subject: editFormData.subject.trim(),
           year: editFormData.year,
           stream: editFormData.category === "A/L" ? editFormData.stream : null,
+          grade: editFormData.grade !== "None / General" ? editFormData.grade : null,
           has_answers: editFormData.has_answers,
         }),
       });
@@ -473,7 +640,15 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
 
       const updated = result.data;
       setPapers((prev) =>
-        prev.map((p) => (p.id === editingPaper.id ? { ...p, ...updated } : p))
+        prev.map((p) =>
+          p.id === editingPaper.id
+            ? {
+                ...p,
+                ...updated,
+                grade: editFormData.grade !== "None / General" ? editFormData.grade : null,
+              }
+            : p
+        )
       );
       handleCloseEdit();
       showToast({
@@ -627,19 +802,64 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
 
   const filteredPapers = useMemo(() => {
     return papers.filter((p) => {
-      const matchesCategory =
-        tableCategory === "All" ||
-        p.category?.toLowerCase() === tableCategory.toLowerCase();
-      const q = tableSearch.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        p.title?.toLowerCase().includes(q) ||
-        p.subject?.toLowerCase().includes(q) ||
-        p.year?.toString().includes(q);
+      // 1. Category Filter
+      if (tableCategory !== "All") {
+        if (tableCategory === "Other") {
+          const cat = (p.category || "").toLowerCase();
+          if (cat !== "other" && cat !== "term" && cat !== "term test") return false;
+        } else {
+          if ((p.category || "").toLowerCase() !== tableCategory.toLowerCase()) return false;
+        }
+      }
 
-      return matchesCategory && matchesSearch;
+      // 2. Grade Filter
+      if (tableGrade !== "All") {
+        const detected = detectGradeForPaper(p);
+        const pGrade = (p.grade && p.grade !== "None / General" ? p.grade : detected) || "";
+        if (!pGrade.toLowerCase().includes(tableGrade.toLowerCase())) return false;
+      }
+
+      // 3. Subject Filter
+      if (tableSubject !== "All") {
+        if ((p.subject || "").toLowerCase() !== tableSubject.toLowerCase()) return false;
+      }
+
+      // 4. Academic Year Filter
+      if (tableYear !== "All") {
+        if (String(p.year) !== String(tableYear)) return false;
+      }
+
+      // 5. Answers Filter
+      if (tableAnswers !== "All") {
+        const hasAns = Boolean(p.has_answers);
+        if (tableAnswers === "yes" && !hasAns) return false;
+        if (tableAnswers === "no" && hasAns) return false;
+      }
+
+      // 6. Search keyword across Title, Subject, Category, Grade, Year
+      const q = tableSearch.toLowerCase().trim();
+      if (q) {
+        const detected = detectGradeForPaper(p);
+        const pGrade = (p.grade && p.grade !== "None / General" ? p.grade : detected) || "";
+        const match =
+          (p.title && p.title.toLowerCase().includes(q)) ||
+          (p.subject && p.subject.toLowerCase().includes(q)) ||
+          (p.category && p.category.toLowerCase().includes(q)) ||
+          pGrade.toLowerCase().includes(q) ||
+          (p.year && p.year.toString().includes(q));
+        if (!match) return false;
+      }
+
+      return true;
     });
-  }, [papers, tableCategory, tableSearch]);
+  }, [papers, tableCategory, tableGrade, tableSubject, tableYear, tableAnswers, tableSearch]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPapers.length / TABLE_PAGE_SIZE));
+
+  const paginatedPapers = useMemo(() => {
+    const start = (tableCurrentPage - 1) * TABLE_PAGE_SIZE;
+    return filteredPapers.slice(start, start + TABLE_PAGE_SIZE);
+  }, [filteredPapers, tableCurrentPage]);
 
   // Logout handler
   const handleLogout = async () => {
@@ -980,6 +1200,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
     if (paperSubTab === "passpaper") return passpaperLevel;
     if (paperSubTab === "model") return "Model";
     if (paperSubTab === "province") return "Provincial";
+    if (paperSubTab === "other") return "Other";
     return "O/L";
   };
 
@@ -1011,6 +1232,10 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
       return `${yr} ${levelLabel ? levelLabel + " " : ""}${effectiveSubj} Model Paper (${medium})`;
     } else if (paperSubTab === "province") {
       return `${yr} ${province} ${provinceGrade} ${effectiveSubj} ${provinceTerm} (${medium})`;
+    } else if (paperSubTab === "other") {
+      const grStr = otherGrade && otherGrade !== "None / General" ? ` ${otherGrade}` : "";
+      const typeStr = otherPaperType ? ` ${otherPaperType}` : " Paper";
+      return `${yr}${grStr} ${effectiveSubj} ${typeStr} (${medium})`;
     }
     return `${yr} ${effectiveSubj} Past Paper`;
   };
@@ -1035,8 +1260,13 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
         return false;
       }
 
-      // For Provincial papers, they differ by province, term, or grade
-      if (category?.toLowerCase() === "provincial" || p.category?.toLowerCase() === "provincial") {
+      // For Provincial and Other papers, they differ by province, term, or grade
+      if (
+        category?.toLowerCase() === "provincial" ||
+        p.category?.toLowerCase() === "provincial" ||
+        category?.toLowerCase() === "other" ||
+        p.category?.toLowerCase() === "other"
+      ) {
         return false;
       }
 
@@ -1084,6 +1314,8 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
     province,
     provinceGrade,
     provinceTerm,
+    otherGrade,
+    otherPaperType,
     medium,
     hasAnswers,
     papers,
@@ -1194,7 +1426,17 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
     const isAL =
       (paperSubTab === "passpaper" && passpaperLevel === "A/L") ||
       (paperSubTab === "model" && modelLevel === "A/L") ||
-      (paperSubTab === "province" && provinceGrade.includes("A/L"));
+      (paperSubTab === "province" && provinceGrade.includes("A/L")) ||
+      (paperSubTab === "other" && otherGrade.includes("A/L"));
+
+    const effectiveGrade =
+      paperSubTab === "province"
+        ? provinceGrade
+        : paperSubTab === "other"
+        ? (otherGrade !== "None / General" ? otherGrade : null)
+        : paperSubTab === "passpaper" && passpaperLevel === "Grade 5"
+        ? "Grade 5"
+        : null;
 
     const queuedItem = {
       id: `queue-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
@@ -1204,6 +1446,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
       subject: effectiveSubject,
       year: formData.year.toString().trim(),
       stream: isAL ? alStream : null,
+      grade: effectiveGrade,
       has_answers: hasAnswers,
       status: "queued",
       stepLabel: "In Queue...",
@@ -1255,58 +1498,8 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
     });
   };
 
-  // Reusable With Answers Toggle Component
-  const renderWithAnswersToggle = () => (
-    <div className="p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/40 flex items-center justify-between gap-3 shadow-2xs">
-      <div className="flex items-center gap-3">
-        <div
-          className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black transition-all shrink-0 ${
-            hasAnswers
-              ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/30"
-              : "bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
-          }`}
-        >
-          ✓
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-              With Answers / Marking Scheme
-            </span>
-            {hasAnswers && (
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
-                Active
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            {hasAnswers
-              ? "Answers included with this paper. 'With Answers' badge will be highlighted."
-              : "Question paper only (no answers / marking scheme attached)."}
-          </p>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        role="switch"
-        aria-checked={hasAnswers}
-        onClick={() => setHasAnswers(!hasAnswers)}
-        className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500/30 ${
-          hasAnswers ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
-        }`}
-      >
-        <span
-          className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-            hasAnswers ? "translate-x-5" : "translate-x-0"
-          }`}
-        />
-      </button>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex transition-colors duration-300">
+    <div className="dark min-h-screen bg-[#07090E] text-slate-100 flex selection:bg-cyan-500/30">
       
       {/* Mobile Sidebar Backdrop */}
       {mobileSidebarOpen && (
@@ -1660,7 +1853,6 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                   <svg className={`w-4 h-4 ${activeUploadsCount > 0 ? "animate-bounce" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
-                  <span className="hidden md:inline">Queue</span>
                   {uploadQueue.length > 0 && (
                     <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                       activeUploadsCount > 0
@@ -1799,49 +1991,46 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                 )}
               </div>
 
-              {/* Cache Clear & Hard Refresh Button */}
+              {/* Dashboard Refresh Button (Icon Only) */}
               <button
                 type="button"
-                onClick={handleClearCacheRefresh}
+                onClick={handleDashboardRefresh}
                 disabled={isRefreshing}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white/80 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition shadow-2xs cursor-pointer"
-                title="Clear Cache & Hard Refresh"
+                className="p-2 sm:p-2.5 rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white transition shadow-sm cursor-pointer group flex items-center justify-center disabled:opacity-50"
+                title="Refresh Dashboard"
               >
-                <svg className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-blue-600" : "opacity-70"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className={`w-4 h-4 ${isRefreshing ? "animate-spin text-cyan-400" : "text-slate-300 group-hover:text-cyan-400 group-hover:rotate-180 transition-transform duration-500"}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span className="hidden xl:inline">Hard Refresh</span>
               </button>
 
-              {/* Dark Mode Toggle */}
-              <div className="shrink-0">
-                <ThemeToggle />
-              </div>
-
-              {/* View Public Site Link */}
+              {/* View Public Site Link (Icon Only) */}
               <Link
                 href="/"
                 target="_blank"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white/80 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition shadow-2xs"
+                className="p-2 sm:p-2.5 rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 transition shadow-sm flex items-center justify-center"
                 title="View Public Site (Opens in new tab)"
               >
-                <span>Public Site</span>
-                <svg className="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </Link>
 
-              {/* Sign Out Button */}
+              {/* Sign Out Button (Icon Only) */}
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold transition cursor-pointer shadow-2xs"
+                className="p-2 sm:p-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition cursor-pointer shadow-sm flex items-center justify-center"
                 title="Sign Out"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                <span className="hidden sm:inline">Sign Out</span>
               </button>
             </div>
           </header>
@@ -1853,422 +2042,628 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
         {activeTab === "dashboard" && (
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Header Banner */}
-            <div className="p-5 sm:p-7 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-sky-600 text-white shadow-xl shadow-blue-500/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/70 to-slate-900 border border-slate-800/90 shadow-2xl relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+              {/* Luminous Top Accent Rim */}
+              <div className="absolute top-0 inset-x-8 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
+
               <div>
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[11px] font-black uppercase tracking-wider mb-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  Administrator Control Center
+                </div>
+                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                   Welcome to Administrator Management Portal
                 </h1>
-                <p className="text-xs sm:text-sm text-blue-100 mt-1">
+                <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
                   Manage past papers repository, view real-time download analytics, and monitor student registrations.
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+
+              <div className="flex items-center gap-2.5 flex-wrap">
+                {/* Prominent Dashboard Refresh Button */}
+                <button
+                  type="button"
+                  onClick={handleDashboardRefresh}
+                  disabled={isRefreshing}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-slate-200 font-bold text-xs flex items-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-50 group"
+                  title="Refresh Dashboard Data"
+                >
+                  <svg className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-cyan-400" : "text-cyan-400 group-hover:rotate-180 transition-transform duration-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>{isRefreshing ? "Refreshing..." : "Refresh Dashboard"}</span>
+                </button>
+
                 <button
                   onClick={() => setActiveTab("add-paper")}
-                  className="px-4 py-2.5 rounded-xl bg-white text-blue-700 font-bold text-xs shadow-md hover:bg-blue-50 transition cursor-pointer flex items-center gap-2"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-cyan-500/20 transition cursor-pointer flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                   <span>Upload New Paper</span>
                 </button>
+
                 <button
                   onClick={() => setActiveTab("repository")}
-                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 font-bold text-xs transition cursor-pointer"
                 >
                   View Repository
                 </button>
               </div>
             </div>
 
-            {/* Metric Cards Grid (5-Column Responsive) */}
+            {/* Metric Cards Grid (5-Column Responsive Luxury Dark Cards) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Total Papers
-                  </p>
-                  <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
-                    {papers.length}
-                  </p>
-                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">
-                    Live in Catalog
-                  </p>
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Total Downloads
-                  </p>
-                  <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
-                    {totalDownloads.toLocaleString()}
-                  </p>
-                  <p className="text-[11px] text-blue-600 dark:text-blue-400 font-bold mt-1">
-                    Student Downloads
-                  </p>
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
+              {/* 1. Total Papers */}
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl hover:border-blue-500/40 transition-all duration-300 relative overflow-hidden group">
+                <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Total Papers
+                    </p>
+                    <p className="text-2xl sm:text-3xl font-black text-white mt-1">
+                      {papers.length}
+                    </p>
+                    <p className="text-[11px] text-blue-400 font-bold mt-1">
+                      Live in Catalog
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-inner group-hover:scale-105 transition-transform">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Registered Students
-                  </p>
-                  <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
-                    {users.length}
-                  </p>
-                  <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold mt-1">
-                    Student Profiles
-                  </p>
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Card 4: Today's Site Visits */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Today's Visits
-                  </p>
-                  <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
-                    {visitsData?.today ?? 0}
-                  </p>
-                  <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-bold mt-1 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-                    <span>Live Traffic</span>
-                  </p>
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-900/60 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
+              {/* 2. Total Downloads */}
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl hover:border-emerald-500/40 transition-all duration-300 relative overflow-hidden group">
+                <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Total Downloads
+                    </p>
+                    <p className="text-2xl sm:text-3xl font-black text-white mt-1">
+                      {totalDownloads.toLocaleString()}
+                    </p>
+                    <p className="text-[11px] text-emerald-400 font-bold mt-1">
+                      Student Downloads
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-inner group-hover:scale-105 transition-transform">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
-              {/* Card 5: Upload Queue */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Upload Queue
-                  </p>
-                  <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
-                    {activeUploadsCount}
-                  </p>
-                  <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-1">
-                    {activeUploadsCount > 0 ? "Uploading" : "All Finished"}
-                  </p>
+              {/* 3. Registered Students */}
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl hover:border-indigo-500/40 transition-all duration-300 relative overflow-hidden group">
+                <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Registered Students
+                    </p>
+                    <p className="text-2xl sm:text-3xl font-black text-white mt-1">
+                      {users.length}
+                    </p>
+                    <p className="text-[11px] text-indigo-400 font-bold mt-1">
+                      Verified Students
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner group-hover:scale-105 transition-transform">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
                 </div>
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
+              </div>
+
+              {/* 4. Today's Site Visits */}
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl hover:border-cyan-500/40 transition-all duration-300 relative overflow-hidden group">
+                <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Today's Visits
+                    </p>
+                    <p className="text-2xl sm:text-3xl font-black text-white mt-1">
+                      {visitsData?.today ?? 0}
+                    </p>
+                    <p className="text-[11px] text-cyan-400 font-bold mt-1 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                      <span>Live Traffic</span>
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shadow-inner group-hover:scale-105 transition-transform">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Upload Queue */}
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl hover:border-amber-500/40 transition-all duration-300 relative overflow-hidden group">
+                <div className="absolute top-0 inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Upload Queue
+                    </p>
+                    <p className="text-2xl sm:text-3xl font-black text-white mt-1">
+                      {activeUploadsCount}
+                    </p>
+                    <p className="text-[11px] text-amber-400 font-bold mt-1">
+                      {activeUploadsCount > 0 ? "Uploading" : "All Finished"}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-inner group-hover:scale-105 transition-transform">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* ================= ULTRA-PREMIUM SITE TRAFFIC & DAILY VISITS WIDGET ================= */}
-            <div className="p-5 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6 relative overflow-hidden">
-              {/* Subtle top inner glow rim */}
-              <div className="absolute top-0 inset-x-6 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent pointer-events-none" />
+            {/* ================= ULTRA-PREMIUM DAILY VISITORS LINE CHART (THIS MONTH) ================= */}
+            {(() => {
+              // 1. Determine items to display based on selected traffic period
+              const now = new Date();
+              const currentYearMonth = getColomboDate(now).slice(0, 7); // e.g. "2026-11"
+              const allDaily = visitsData?.daily || [];
 
-              {/* Header with Title & Action Controls */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-800/80">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse" />
-                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                      Site Traffic & Daily Visitors (දිනපතා වෙබ් අඩවි පිවිසුම්)
-                    </h3>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    දිනෙන් දින site එකට පැමිණි පරිශීලකයින් සංඛ්‍යාව සහ දෛනික වර්ධන ප්‍රවණතාව (Daily Visit Volume)
-                  </p>
-                </div>
+              const thisMonthDays = allDaily.filter((d) => d.date.startsWith(currentYearMonth));
+              
+              let chartItems = [];
+              if (trafficPeriod === "month") {
+                chartItems = thisMonthDays.length > 0 ? thisMonthDays : allDaily.slice(-30);
+              } else if (trafficPeriod === "7d") {
+                chartItems = allDaily.slice(-7);
+              } else if (trafficPeriod === "14d") {
+                chartItems = allDaily.slice(-14);
+              } else {
+                chartItems = allDaily.slice(-30);
+              }
 
-                {/* Controls: Days Filter, Refresh & SQL Setup */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* Days Filter Pills */}
-                  <div className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-1">
-                    {[7, 14, 30].map((d) => (
+              // Month total metrics
+              const monthTotalVisits = thisMonthDays.reduce((acc, d) => acc + (d.count || 0), 0);
+              const periodTotalVisits = chartItems.reduce((acc, d) => acc + (d.count || 0), 0);
+              const avgVisits = chartItems.length > 0 ? Math.round(periodTotalVisits / chartItems.length) : 0;
+              const peakInPeriod = chartItems.reduce(
+                (max, d) => (d.count > max.count ? { count: d.count, label: d.label, date: d.date } : max),
+                { count: 0, label: "None", date: "" }
+              );
+
+              // 2. SVG Line Chart Coordinates
+              const svgW = 860;
+              const svgH = 240;
+              const padLeft = 45;
+              const padRight = 30;
+              const padTop = 25;
+              const padBottom = 35;
+              const innerW = svgW - padLeft - padRight;
+              const innerH = svgH - padTop - padBottom;
+
+              const maxCount = Math.max(...chartItems.map((d) => d.count), 5);
+
+              const points = chartItems.map((item, idx) => {
+                const x = padLeft + (idx / Math.max(chartItems.length - 1, 1)) * innerW;
+                const y = padTop + (1 - item.count / maxCount) * innerH;
+                return { ...item, x, y };
+              });
+
+              // Monotone cubic bezier path builder for silky smooth organic curve
+              const buildCurvedPath = (pts) => {
+                if (pts.length === 0) return "";
+                if (pts.length === 1) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+                let path = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+                for (let i = 0; i < pts.length - 1; i++) {
+                  const p0 = pts[i === 0 ? 0 : i - 1];
+                  const p1 = pts[i];
+                  const p2 = pts[i + 1];
+                  const p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+                  const cp1x = p1.x + (p2.x - p0.x) / 6;
+                  const cp1y = p1.y + (p2.y - p0.y) / 6;
+                  const cp2x = p2.x - (p3.x - p1.x) / 6;
+                  const cp2y = p2.y - (p3.y - p1.y) / 6;
+                  path += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+                }
+                return path;
+              };
+
+              const linePathStr = buildCurvedPath(points);
+              const bottomY = padTop + innerH;
+              const areaPathStr = points.length > 0
+                ? `${linePathStr} L ${points[points.length - 1].x.toFixed(1)} ${bottomY} L ${points[0].x.toFixed(1)} ${bottomY} Z`
+                : "";
+
+              // Hovered point details
+              const hoveredPoint = hoveredPointIndex !== null && points[hoveredPointIndex] ? points[hoveredPointIndex] : null;
+
+              return (
+                <div className="p-5 sm:p-7 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl space-y-6 relative overflow-hidden">
+                  {/* Cyan Luminous Accent Rim */}
+                  <div className="absolute top-0 inset-x-8 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent pointer-events-none" />
+
+                  {/* Header & Control Bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                    <div>
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                        <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                          Daily Visitors
+                        </h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 uppercase tracking-wider">
+                          Line Chart
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Track day-by-day site visitor volume and real-time student traffic trend.
+                      </p>
+                    </div>
+
+                    {/* Period Switcher Pills & Action Buttons */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="p-1 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center gap-1 shadow-inner">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTrafficPeriod("month");
+                            setVisitsDays(30);
+                            handleFetchVisits(30);
+                          }}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            trafficPeriod === "month"
+                              ? "bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20"
+                              : "text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          This Month
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTrafficPeriod("30d");
+                            setVisitsDays(30);
+                            handleFetchVisits(30);
+                          }}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            trafficPeriod === "30d"
+                              ? "bg-blue-600 text-white font-black shadow-md shadow-blue-500/20"
+                              : "text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          30 Days
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTrafficPeriod("14d");
+                            setVisitsDays(14);
+                            handleFetchVisits(14);
+                          }}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            trafficPeriod === "14d"
+                              ? "bg-blue-600 text-white font-black shadow-md shadow-blue-500/20"
+                              : "text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          14 Days
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTrafficPeriod("7d");
+                            setVisitsDays(7);
+                            handleFetchVisits(7);
+                          }}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            trafficPeriod === "7d"
+                              ? "bg-blue-600 text-white font-black shadow-md shadow-blue-500/20"
+                              : "text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          7 Days
+                        </button>
+                      </div>
+
+                      {/* Refresh Button */}
                       <button
-                        key={d}
                         type="button"
-                        onClick={() => {
-                          setVisitsDays(d);
-                          handleFetchVisits(d);
-                        }}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          visitsDays === d
-                            ? "bg-blue-600 text-white shadow-xs font-black"
-                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                        }`}
+                        onClick={() => handleFetchVisits(visitsDays)}
+                        disabled={isLoadingVisits}
+                        className="h-8 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm"
+                        title="Refresh Traffic Data"
                       >
-                        {d} Days
+                        <svg
+                          className={`w-3.5 h-3.5 ${isLoadingVisits ? "animate-spin text-cyan-400" : "text-cyan-400"}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span className="hidden sm:inline">Refresh</span>
                       </button>
-                    ))}
+
+                      {/* SQL Setup Helper Trigger */}
+                      <button
+                        type="button"
+                        onClick={() => setShowSqlModal(true)}
+                        className="h-8 px-3 rounded-xl bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-800/60 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        title="Supabase site_visits table configuration"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>SQL Setup</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Refresh Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleFetchVisits(visitsDays)}
-                    disabled={isLoadingVisits}
-                    className="h-8 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                    title="Refresh Traffic Data"
-                  >
-                    <svg
-                      className={`w-3.5 h-3.5 ${isLoadingVisits ? "animate-spin text-blue-600" : ""}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span className="hidden sm:inline">Refresh</span>
-                  </button>
+                  {/* 4 Summary Metric Cards (This Month Total, Today, Daily Avg, Peak Day) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                    {/* 1. Period / Month Total */}
+                    <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400">
+                        {trafficPeriod === "month" ? "This Month Total" : "Period Total"}
+                      </span>
+                      <p className="text-xl sm:text-2xl font-black text-white">
+                        {trafficPeriod === "month" ? monthTotalVisits.toLocaleString() : periodTotalVisits.toLocaleString()}
+                      </p>
+                      <p className="text-[10px] text-cyan-400 font-bold">
+                        {trafficPeriod === "month" ? "Current Calendar Month" : `Last ${chartItems.length} Days`}
+                      </p>
+                    </div>
 
-                  {/* Supabase SQL Setup Helper Modal Trigger */}
-                  <button
-                    type="button"
-                    onClick={() => setShowSqlModal(true)}
-                    className="h-8 px-2.5 rounded-xl bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200/80 dark:border-cyan-800/60 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-                    title="Supabase site_visits table configuration"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span>SQL Setup</span>
-                  </button>
-                </div>
-              </div>
+                    {/* 2. Today's Visits */}
+                    <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-400">Today</span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      </div>
+                      <p className="text-xl sm:text-2xl font-black text-emerald-400">
+                        {visitsData?.today ?? 0}
+                      </p>
+                      <p className="text-[10px] text-emerald-500 font-bold">
+                        Daily Live Visitors
+                      </p>
+                    </div>
 
-              {/* Traffic Summary Metrics Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                {/* 1. Today */}
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">අද දිනය (Today)</span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    {/* 3. Daily Average */}
+                    <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400">Daily Average</span>
+                      <p className="text-xl sm:text-2xl font-black text-blue-400">
+                        {avgVisits}
+                      </p>
+                      <p className="text-[10px] text-blue-500 font-bold">
+                        Avg / Day ({chartItems.length} Days)
+                      </p>
+                    </div>
+
+                    {/* 4. Peak Volume */}
+                    <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400">Peak Volume</span>
+                      <p className="text-xl sm:text-2xl font-black text-purple-400 truncate">
+                        {peakInPeriod.count}
+                      </p>
+                      <p className="text-[10px] text-purple-400 font-bold truncate">
+                        {peakInPeriod.label || "No records"}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                    {visitsData?.today ?? 0}
-                  </p>
-                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                    Daily Visitors
-                  </p>
-                </div>
 
-                {/* 2. Yesterday */}
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 space-y-1">
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">ඊයේ (Yesterday)</span>
-                  <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                    {visitsData?.yesterday ?? 0}
-                  </p>
-                  <p className="text-[10px] text-slate-400 font-bold">
-                    Previous Day Total
-                  </p>
-                </div>
+                  {/* SVG Curved Line Chart Container */}
+                  <div className="relative p-4 sm:p-6 rounded-2xl bg-slate-950/80 border border-slate-800 overflow-hidden">
+                    {chartItems.length === 0 ? (
+                      <div className="p-12 text-center text-xs text-slate-400">
+                        No site visit records available for this period.
+                      </div>
+                    ) : (
+                      <div className="relative w-full overflow-x-auto custom-scrollbar">
+                        <svg
+                          viewBox={`0 0 ${svgW} ${svgH}`}
+                          className="w-full h-56 sm:h-64 select-none overflow-visible"
+                          preserveAspectRatio="none"
+                        >
+                          <defs>
+                            {/* Area Gradient Fill */}
+                            <linearGradient id="visitorAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#06B6D4" stopOpacity="0.45" />
+                              <stop offset="60%" stopColor="#3B82F6" stopOpacity="0.10" />
+                              <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.0" />
+                            </linearGradient>
 
-                {/* 3. Daily Average */}
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 space-y-1">
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">දෛනික සාමාන්‍යය (Avg)</span>
-                  <p className="text-xl sm:text-2xl font-black text-blue-600 dark:text-cyan-400">
-                    {visitsData?.dailyAverage ?? 0}
-                  </p>
-                  <p className="text-[10px] text-blue-500 dark:text-blue-400 font-bold">
-                    Per Day (Last {visitsDays}d)
-                  </p>
-                </div>
+                            {/* Line Stroke Gradient */}
+                            <linearGradient id="visitorLineGradient" x1="0" y1="0" x2="1" y2="0">
+                              <stop offset="0%" stopColor="#38BDF8" />
+                              <stop offset="50%" stopColor="#818CF8" />
+                              <stop offset="100%" stopColor="#C084FC" />
+                            </linearGradient>
 
-                {/* 4. Peak Day */}
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 space-y-1">
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">වැඩිම පැමිණීම (Peak)</span>
-                  <p className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 truncate">
-                    {visitsData?.peakDay?.count ?? 0}
-                  </p>
-                  <p className="text-[10px] text-purple-500 dark:text-purple-400 font-bold truncate">
-                    {visitsData?.peakDay?.label || "No records"}
-                  </p>
-                </div>
-              </div>
+                            {/* Glow Filter */}
+                            <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+                              <feGaussianBlur stdDeviation="3" result="blur" />
+                              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                          </defs>
 
-              {/* Visual Day-by-Day Bar Chart */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-700 dark:text-slate-300">
-                    දිනෙන් දින ප්‍රස්තාරය (Day-by-Day Volume)
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    පසුගිය දින {visitsDays} තුළ
-                  </span>
-                </div>
-
-                {(!visitsData?.daily || visitsData.daily.length === 0) ? (
-                  <div className="p-10 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200/60 dark:border-white/5">
-                    තවමත් පැමිණීම් වාර්තා වී නොමැත. (No site visits recorded yet)
-                  </div>
-                ) : (
-                  <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-950/50 border border-slate-200/70 dark:border-white/5">
-                    {(() => {
-                      const maxDaily = Math.max(...visitsData.daily.map((d) => d.count), 1);
-                      return (
-                        <div className="flex items-end justify-between gap-1.5 sm:gap-2.5 h-44 sm:h-52 pt-6 pb-2 overflow-x-auto custom-scrollbar">
-                          {visitsData.daily.map((day) => {
-                            const barHeight = Math.max(10, Math.round((day.count / maxDaily) * 100));
+                          {/* 4 Horizontal Dashed Gridlines & Y-Axis Labels */}
+                          {[0, 0.33, 0.66, 1].map((pct, idx) => {
+                            const gridY = padTop + (1 - pct) * innerH;
+                            const gridVal = Math.round(pct * maxCount);
                             return (
-                              <div
-                                key={day.date}
-                                className="flex-1 min-w-[28px] sm:min-w-[36px] max-w-[56px] flex flex-col items-center gap-1.5 group h-full justify-end cursor-pointer"
-                                title={`${day.date}: ${day.count} visits`}
-                              >
-                                {/* Tooltip Count pill */}
-                                <span
-                                  className={`text-[10px] sm:text-[11px] font-black px-1.5 py-0.5 rounded-md transition-all duration-200 whitespace-nowrap shadow-xs ${
-                                    day.isToday
-                                      ? "bg-emerald-500 text-white opacity-100"
-                                      : "bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 opacity-0 group-hover:opacity-100 -translate-y-1 group-hover:translate-y-0"
-                                  }`}
+                              <g key={idx}>
+                                <line
+                                  x1={padLeft}
+                                  y1={gridY}
+                                  x2={svgW - padRight}
+                                  y2={gridY}
+                                  stroke="#334155"
+                                  strokeWidth={0.8}
+                                  strokeDasharray="4 4"
+                                  opacity={0.4}
+                                />
+                                <text
+                                  x={padLeft - 8}
+                                  y={gridY + 3.5}
+                                  fill="#64748B"
+                                  fontSize="10"
+                                  fontWeight="600"
+                                  textAnchor="end"
+                                  fontFamily="monospace"
                                 >
-                                  {day.count}
-                                </span>
-
-                                {/* Bar Pillar */}
-                                <div
-                                  className={`w-full rounded-xl overflow-hidden p-0.5 flex flex-col justify-end h-full transition-all duration-300 ${
-                                    day.isToday
-                                      ? "bg-emerald-100/80 dark:bg-emerald-950/40 ring-2 ring-emerald-500/30"
-                                      : "bg-slate-200/60 dark:bg-slate-800/60 group-hover:bg-slate-300/60 dark:group-hover:bg-slate-700/60"
-                                  }`}
-                                >
-                                  <div
-                                    className={`w-full rounded-lg transition-all duration-500 shadow-sm ${
-                                      day.isToday
-                                        ? "bg-gradient-to-t from-emerald-600 via-teal-500 to-cyan-400 group-hover:brightness-110"
-                                        : "bg-gradient-to-t from-blue-600 via-indigo-600 to-cyan-400 group-hover:brightness-110"
-                                    }`}
-                                    style={{ height: `${barHeight}%` }}
-                                  />
-                                </div>
-
-                                {/* Date Label */}
-                                <div className="text-center">
-                                  <span
-                                    className={`block text-[9.5px] sm:text-[10.5px] font-bold leading-tight ${
-                                      day.isToday
-                                        ? "text-emerald-600 dark:text-emerald-400 font-black"
-                                        : "text-slate-600 dark:text-slate-400"
-                                    }`}
-                                  >
-                                    {day.label}
-                                  </span>
-                                  <span className="block text-[8.5px] sm:text-[9.5px] text-slate-400 dark:text-slate-500 uppercase leading-none mt-0.5">
-                                    {day.isToday ? "Today" : day.weekday}
-                                  </span>
-                                </div>
-                              </div>
+                                  {gridVal}
+                                </text>
+                              </g>
                             );
                           })}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
 
-              {/* Day-by-Day Detailed Log Table */}
-              {visitsData?.daily && visitsData.daily.length > 0 && (
-                <div className="space-y-2 pt-2">
-                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    දෛනික ලේඛනය (Detailed Breakdown)
-                  </h4>
-                  <div className="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200/80 dark:border-slate-800">
-                        <tr>
-                          <th className="py-2.5 px-4">දිනය (Date)</th>
-                          <th className="py-2.5 px-4">දවස (Day)</th>
-                          <th className="py-2.5 px-4 text-right">පැමිණීම් සංඛ්‍යාව (Visits)</th>
-                          <th className="py-2.5 px-4">ප්‍රතිශතය (Share)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                        {(() => {
-                          const totalInPeriod = visitsData.daily.reduce((acc, c) => acc + c.count, 0) || 1;
-                          return [...visitsData.daily].reverse().map((day) => {
-                            const pct = Math.round((day.count / totalInPeriod) * 100);
+                          {/* Area Gradient Under Curve */}
+                          {areaPathStr && (
+                            <path
+                              d={areaPathStr}
+                              fill="url(#visitorAreaGradient)"
+                              className="transition-all duration-300"
+                            />
+                          )}
+
+                          {/* Glowing Spline Stroke Curve */}
+                          {linePathStr && (
+                            <path
+                              d={linePathStr}
+                              fill="none"
+                              stroke="url(#visitorLineGradient)"
+                              strokeWidth={3}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              filter="url(#neonGlow)"
+                              className="transition-all duration-300"
+                            />
+                          )}
+
+                          {/* Active Hover Guide Line */}
+                          {hoveredPoint && (
+                            <line
+                              x1={hoveredPoint.x}
+                              y1={padTop}
+                              x2={hoveredPoint.x}
+                              y2={bottomY}
+                              stroke="#38BDF8"
+                              strokeWidth={1.5}
+                              strokeDasharray="3 3"
+                              opacity={0.7}
+                            />
+                          )}
+
+                          {/* Data Points on Curve */}
+                          {points.map((pt, idx) => {
+                            const isPeak = pt.count === maxCount && pt.count > 0;
+                            const isHovered = hoveredPointIndex === idx;
+
                             return (
-                              <tr
-                                key={day.date}
-                                className={`transition-colors ${
-                                  day.isToday
-                                    ? "bg-emerald-50/60 dark:bg-emerald-950/20 font-bold"
-                                    : "hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
-                                }`}
-                              >
-                                <td className="py-2.5 px-4">
-                                  <div className="flex items-center gap-2">
-                                    {day.isToday && (
-                                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                    )}
-                                    <span className="font-mono text-slate-800 dark:text-slate-200">
-                                      {day.date}
-                                    </span>
-                                    {day.isToday && (
-                                      <span className="px-1.5 py-0.2 rounded text-[9.5px] font-black bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300">
-                                        Today
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="py-2.5 px-4 text-slate-600 dark:text-slate-400">
-                                  {day.weekday} ({day.label})
-                                </td>
-                                <td className="py-2.5 px-4 text-right font-black text-slate-900 dark:text-white">
-                                  {day.count.toLocaleString()}
-                                </td>
-                                <td className="py-2.5 px-4">
-                                  <div className="flex items-center gap-2 max-w-[160px]">
-                                    <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                                      <div
-                                        className={`h-full rounded-full transition-all duration-300 ${
-                                          day.isToday ? "bg-emerald-500" : "bg-blue-600"
-                                        }`}
-                                        style={{ width: `${pct}%` }}
-                                      />
-                                    </div>
-                                    <span className="text-[10px] text-slate-400 font-mono w-8 text-right">
-                                      {pct}%
-                                    </span>
-                                  </div>
-                                </td>
-                              </tr>
+                              <g key={pt.date || idx}>
+                                {/* Today Pulse Halo Ring */}
+                                {pt.isToday && (
+                                  <circle
+                                    cx={pt.x}
+                                    cy={pt.y}
+                                    r={8}
+                                    fill="#10B981"
+                                    opacity={0.3}
+                                    className="animate-ping"
+                                  />
+                                )}
+
+                                {/* Outer Data Point Dot */}
+                                <circle
+                                  cx={pt.x}
+                                  cy={pt.y}
+                                  r={isHovered ? 6 : pt.isToday ? 4.5 : isPeak ? 4 : 2.5}
+                                  fill={pt.isToday ? "#10B981" : isPeak ? "#C084FC" : isHovered ? "#38BDF8" : "#818CF8"}
+                                  stroke="#0B0F19"
+                                  strokeWidth={isHovered ? 2.5 : 1.5}
+                                  className="transition-all duration-150"
+                                />
+
+                                {/* Invisible Hit Area for Easy Hovering */}
+                                <circle
+                                  cx={pt.x}
+                                  cy={pt.y}
+                                  r={18}
+                                  fill="transparent"
+                                  className="cursor-pointer"
+                                  onMouseEnter={() => setHoveredPointIndex(idx)}
+                                  onTouchStart={() => setHoveredPointIndex(idx)}
+                                />
+                              </g>
                             );
-                          });
-                        })()}
-                      </tbody>
-                    </table>
+                          })}
+
+                          {/* X-Axis Date Labels (Evenly spaced) */}
+                          {points
+                            .filter((_, idx) => {
+                              const step = Math.max(1, Math.floor(points.length / 6));
+                              return idx % step === 0 || idx === points.length - 1;
+                            })
+                            .map((pt, idx) => (
+                              <text
+                                key={idx}
+                                x={pt.x}
+                                y={bottomY + 18}
+                                fill={pt.isToday ? "#10B981" : "#94A3B8"}
+                                fontSize="10"
+                                fontWeight={pt.isToday ? "800" : "600"}
+                                textAnchor="middle"
+                              >
+                                {pt.isToday ? "Today" : pt.label}
+                              </text>
+                            ))}
+                        </svg>
+
+                        {/* Interactive Floating Tooltip Popover */}
+                        {hoveredPoint && (
+                          <div
+                            className="absolute pointer-events-none transition-all duration-150 z-30"
+                            style={{
+                              left: `${(hoveredPoint.x / svgW) * 100}%`,
+                              top: `${(hoveredPoint.y / svgH) * 100}%`,
+                              transform: "translate(-50%, -125%)",
+                            }}
+                          >
+                            <div className="bg-slate-900/95 border border-cyan-500/40 rounded-xl px-3 py-2 shadow-2xl backdrop-blur-md whitespace-nowrap text-center space-y-0.5">
+                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                {hoveredPoint.date} • {hoveredPoint.weekday}
+                              </p>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                                <span className="text-sm font-black text-white">
+                                  {hoveredPoint.count.toLocaleString()} Visitors
+                                </span>
+                              </div>
+                              {hoveredPoint.isToday && (
+                                <span className="inline-block px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                  Today
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
+              );
+            })()}
 
             {/* Modern Interactive Analytics & Distribution Widgets */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
@@ -2447,16 +2842,16 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                 </div>
               </div>
 
-              {/* Widget 4: Cloud Infrastructure & System Health */}
+              {/* Widget 4: Cloud Infrastructure & System Health with Cloudflare R2 Capacity */}
               <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                        System & Cloud Infrastructure Health
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>System & Cloud Infrastructure Health</span>
                       </h3>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        Cloudflare R2, Supabase Database & Worker Status
+                        Cloudflare R2 Storage, Supabase DB & Edge Status
                       </p>
                     </div>
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 flex items-center gap-1.5">
@@ -2465,14 +2860,69 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-4 text-xs">
+                  {/* Cloudflare R2 Live Storage Capacity Card */}
+                  <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 border border-slate-800 shadow-inner space-y-2.5 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl pointer-events-none" />
+
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center font-black text-[11px] border border-orange-500/30">
+                          ☁️
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-slate-200 text-xs">Cloudflare R2 Storage</span>
+                          <span className="text-[10px] text-slate-400 ml-1.5">({storageStats?.bucket || "desh-papers-bucket"})</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-white">
+                          {storageStats ? `${storageStats.usedMb} MB` : "251.8 MB"}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium"> / {storageStats?.freeTierGb || 10} GB Free Tier</span>
+                      </div>
+                    </div>
+
+                    {/* Luminous Glowing Progress Bar */}
+                    <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden p-0.5 border border-slate-700/60">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-emerald-400 transition-all duration-700 shadow-sm shadow-cyan-500/50"
+                        style={{ width: `${Math.max(2, storageStats?.percentUsed || 2.5)}%` }}
+                      />
+                    </div>
+
+                    {/* Breakdown Metric Badges */}
+                    <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                      <div className="p-1.5 rounded-xl bg-slate-800/60 border border-slate-700/50">
+                        <p className="text-[9px] uppercase font-bold text-slate-400">Used Capacity</p>
+                        <p className="text-[11px] font-black text-cyan-400 mt-0.5">
+                          {storageStats ? `${storageStats.percentUsed}%` : "2.5%"}
+                        </p>
+                      </div>
+                      <div className="p-1.5 rounded-xl bg-slate-800/60 border border-slate-700/50">
+                        <p className="text-[9px] uppercase font-bold text-slate-400">Free Remaining</p>
+                        <p className="text-[11px] font-black text-emerald-400 mt-0.5">
+                          {storageStats ? `${storageStats.remainingGb} GB` : "9.75 GB"}
+                        </p>
+                      </div>
+                      <div className="p-1.5 rounded-xl bg-slate-800/60 border border-slate-700/50">
+                        <p className="text-[9px] uppercase font-bold text-slate-400">Egress Bandwidth</p>
+                        <p className="text-[11px] font-black text-indigo-400 mt-0.5">
+                          Free ($0.00)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-3 text-xs">
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Cloudflare R2</span>
+                        <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Cloudflare Edge</span>
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       </div>
-                      <p className="text-[10px] text-slate-500">Storage & CDN Edge</p>
-                      <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1">99.99% Uptime</p>
+                      <p className="text-[10px] text-slate-500">Global CDN Network</p>
+                      <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                        {storageStats?.totalFiles || papers.length || 75} Stored Files
+                      </p>
                     </div>
 
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
@@ -2504,8 +2954,9 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                   </div>
                 </div>
 
-                <div className="pt-2 text-[10px] text-slate-400 text-right">
-                  System Version 2.0 • Secured Admin Session
+                <div className="pt-2 text-[10px] text-slate-400 flex items-center justify-between">
+                  <span>Free Tier: 10 GB / Month</span>
+                  <span>System Version 2.0 • Cloudflare R2</span>
                 </div>
               </div>
             </div>
@@ -2515,140 +2966,417 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
         {/* TAB 2: REPOSITORY TABLE */}
         {activeTab === "repository" && (
           <div className="space-y-4 animate-in fade-in duration-300">
-            {/* Header & Filters */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div>
-                <h1 className="text-lg font-black text-slate-900 dark:text-white">
-                  Past Papers Repository ({papers.length})
-                </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Search, edit metadata, view or permanently remove published examination papers.
-                </p>
+            {/* Header & Comprehensive Multi-Column Filter Section */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3.5">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <h1 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Past Papers Repository</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900">
+                      {filteredPapers.length}
+                    </span>
+                  </h1>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Filter by every column, wrap titles, paginate by 20, view uploaded dates, and manage papers.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {hasActiveTableFilters && (
+                    <button
+                      type="button"
+                      onClick={handleResetTableFilters}
+                      className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"
+                      title="Clear All Filters"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <span>Reset Filters</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setActiveTab("add-paper")}
+                    className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition cursor-pointer flex items-center gap-1.5 shrink-0"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Add Paper</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5">
-                {/* Search */}
+              {/* Multi-Column Filter Toolbar */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+                {/* Search Input across all columns */}
                 <div className="relative">
                   <input
                     type="text"
                     value={tableSearch}
-                    onChange={(e) => setTableSearch(e.target.value)}
-                    placeholder="Search by title, subject, year..."
-                    className="w-60 sm:w-72 px-3.5 py-2 pl-9 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-medium"
+                    onChange={(e) => {
+                      setTableSearch(e.target.value);
+                      setTableCurrentPage(1);
+                    }}
+                    placeholder="Search by title, subject, grade, year..."
+                    className="w-full px-3.5 py-2.5 pl-9 pr-8 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-medium"
                   />
-                  <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
+                  {tableSearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTableSearch("");
+                        setTableCurrentPage(1);
+                      }}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
 
-                {/* Category Filter */}
-                <PremiumSelect
-                  value={tableCategory}
-                  onChange={setTableCategory}
-                  size="sm"
-                  className="w-48 sm:w-56"
-                  options={[
-                    { value: "All", label: "All Categories" },
-                    { value: "O/L", label: "G.C.E. O/L", badge: "O/L" },
-                    { value: "A/L", label: "G.C.E. A/L", badge: "A/L" },
-                    { value: "Grade 5", label: "Grade 5 Scholarship", badge: "G5" },
-                    { value: "Provincial", label: "Provincial Term Tests", badge: "Prov" },
-                    { value: "Model", label: "Model Papers", badge: "Model" },
-                  ]}
-                />
+                {/* Column Filters Row */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                  {/* Category Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                      Category
+                    </label>
+                    <PremiumSelect
+                      value={tableCategory}
+                      onChange={(val) => {
+                        setTableCategory(val);
+                        setTableCurrentPage(1);
+                      }}
+                      size="sm"
+                      options={[
+                        { value: "All", label: "All Categories" },
+                        { value: "O/L", label: "G.C.E. O/L", badge: "O/L" },
+                        { value: "A/L", label: "G.C.E. A/L", badge: "A/L" },
+                        { value: "Grade 5", label: "Grade 5 Scholarship", badge: "G5" },
+                        { value: "Provincial", label: "Provincial Term Tests", badge: "Prov" },
+                        { value: "Model", label: "Model Papers", badge: "Model" },
+                        { value: "Other", label: "Other Papers", badge: "Other" },
+                      ]}
+                    />
+                  </div>
 
-                <button
-                  onClick={() => setActiveTab("add-paper")}
-                  className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition cursor-pointer flex items-center gap-1.5"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>Add Paper</span>
-                </button>
+                  {/* Grade / Level Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                      Grade / Level
+                    </label>
+                    <PremiumSelect
+                      value={tableGrade}
+                      onChange={(val) => {
+                        setTableGrade(val);
+                        setTableCurrentPage(1);
+                      }}
+                      size="sm"
+                      options={[
+                        { value: "All", label: "All Grades" },
+                        ...EDIT_GRADE_OPTIONS.filter((g) => g !== "None / General").map((g) => ({
+                          value: g,
+                          label: g,
+                        })),
+                      ]}
+                    />
+                  </div>
+
+                  {/* Subject Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                      Subject
+                    </label>
+                    <PremiumSelect
+                      value={tableSubject}
+                      onChange={(val) => {
+                        setTableSubject(val);
+                        setTableCurrentPage(1);
+                      }}
+                      size="sm"
+                      options={[
+                        { value: "All", label: "All Subjects" },
+                        ...availableTableSubjects.map((s) => ({ value: s, label: s })),
+                      ]}
+                    />
+                  </div>
+
+                  {/* Academic Year Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                      Year
+                    </label>
+                    <PremiumSelect
+                      value={tableYear}
+                      onChange={(val) => {
+                        setTableYear(val);
+                        setTableCurrentPage(1);
+                      }}
+                      size="sm"
+                      options={[
+                        { value: "All", label: "All Years" },
+                        ...availableTableYears.map((y) => ({ value: y, label: y })),
+                      ]}
+                    />
+                  </div>
+
+                  {/* Answers Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                      Answers
+                    </label>
+                    <PremiumSelect
+                      value={tableAnswers}
+                      onChange={(val) => {
+                        setTableAnswers(val);
+                        setTableCurrentPage(1);
+                      }}
+                      size="sm"
+                      options={[
+                        { value: "All", label: "All Papers" },
+                        { value: "yes", label: "Has Answers (✓)", badge: "✓" },
+                        { value: "no", label: "No Answers (-)", badge: "-" },
+                      ]}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Table */}
+            {/* Table Container with Room for All Columns & Warped Titles */}
             <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                    <tr className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
-                      <th className="py-3.5 px-4">Title</th>
-                      <th className="py-3.5 px-4">Category</th>
-                      <th className="py-3.5 px-4">Subject</th>
-                      <th className="py-3.5 px-4">Year</th>
-                      <th className="py-3.5 px-4">Answers</th>
-                      <th className="py-3.5 px-4">Downloads</th>
-                      <th className="py-3.5 px-4 text-right">Actions</th>
+                    <tr className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                      <th className="py-3.5 px-4 min-w-[200px] max-w-[320px]">Title</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap min-w-[105px]">Category</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap min-w-[85px]">Grade</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap min-w-[120px]">Subject</th>
+                      <th className="py-3.5 px-4 text-center whitespace-nowrap min-w-[65px]">Year</th>
+                      <th className="py-3.5 px-4 text-center whitespace-nowrap min-w-[70px]">Answers</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap min-w-[95px]">Upload Date</th>
+                      <th className="py-3.5 px-4 text-center whitespace-nowrap min-w-[75px]">Downloads</th>
+                      <th className="py-3.5 px-4 text-right whitespace-nowrap min-w-[110px]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                    {filteredPapers.length === 0 ? (
+                    {paginatedPapers.length === 0 ? (
                       <tr>
-                        <td colSpan="7" className="py-12 text-center text-slate-400">
-                          No papers found matching the search criteria.
+                        <td colSpan="9" className="py-12 text-center text-slate-400">
+                          {hasActiveTableFilters ? (
+                            <div className="space-y-1.5">
+                              <p className="font-bold text-sm text-slate-700 dark:text-slate-300">No papers match your filters</p>
+                              <p className="text-xs text-slate-400">Try adjusting your search criteria or resetting filters.</p>
+                              <button
+                                type="button"
+                                onClick={handleResetTableFilters}
+                                className="mt-2 text-blue-600 dark:text-blue-400 font-bold text-xs hover:underline cursor-pointer"
+                              >
+                                Clear All Filters
+                              </button>
+                            </div>
+                          ) : (
+                            <p>No papers found in the repository yet.</p>
+                          )}
                         </td>
                       </tr>
                     ) : (
-                      filteredPapers.map((paper) => (
-                        <tr key={paper.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
-                          <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white max-w-sm truncate">
-                            {paper.title}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                              {paper.category}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
-                            {paper.subject}
-                          </td>
-                          <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-200">
-                            {paper.year}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            {paper.has_answers ? (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                                Answers
+                      paginatedPapers.map((paper) => {
+                        const detectedGrade = detectGradeForPaper(paper);
+                        const paperGrade = (paper.grade && paper.grade !== "None / General" ? paper.grade : detectedGrade !== "None / General" ? detectedGrade : null);
+
+                        return (
+                          <tr key={paper.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
+                            {/* 1. Title (Warped / Wrapped with break-words so other columns have comfortable room) */}
+                            <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white max-w-[240px] sm:max-w-xs md:max-w-sm whitespace-normal break-words leading-snug">
+                              {paper.title}
+                            </td>
+
+                            {/* 2. Category */}
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-900/50">
+                                {paper.category}
                               </span>
-                            ) : (
-                              <span className="text-slate-400 text-[11px]">-</span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4 font-bold text-emerald-600 dark:text-emerald-400">
-                            {paper.download_count || 0}
-                          </td>
-                          <td className="py-3.5 px-4 text-right space-x-2">
-                            <a
-                              href={paper.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:bg-blue-100 font-bold transition inline-block"
-                            >
-                              PDF ↗
-                            </a>
-                            <button
-                              onClick={() => handleOpenEdit(paper)}
-                              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 font-bold transition cursor-pointer"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeletePaper(paper)}
-                              disabled={deletingId === paper.id}
-                              className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-bold transition cursor-pointer disabled:opacity-50"
-                            >
-                              {deletingId === paper.id ? "..." : "Delete"}
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                            </td>
+
+                            {/* 3. Grade / Level */}
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              {paperGrade ? (
+                                <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/80">
+                                  {paperGrade}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 dark:text-slate-600 text-xs">-</span>
+                              )}
+                            </td>
+
+                            {/* 4. Subject */}
+                            <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300 whitespace-nowrap font-medium">
+                              {paper.subject || "-"}
+                            </td>
+
+                            {/* 5. Year */}
+                            <td className="py-3.5 px-4 text-center font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                              {paper.year}
+                            </td>
+
+                            {/* 6. Answers (Tick Mark) */}
+                            <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                              {paper.has_answers ? (
+                                <span
+                                  title="Answers Available"
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-xs"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.8} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </span>
+                              ) : (
+                                <span
+                                  title="No Answers"
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 text-xs font-bold"
+                                >
+                                  -
+                                </span>
+                              )}
+                            </td>
+
+                            {/* 7. Upload Date */}
+                            <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap text-[11px] font-mono">
+                              {paper.created_at ? new Date(paper.created_at).toLocaleDateString("en-CA") : "-"}
+                            </td>
+
+                            {/* 8. Downloads */}
+                            <td className="py-3.5 px-4 text-center font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                              {paper.download_count || 0}
+                            </td>
+
+                            {/* 9. Actions (Action Buttons Only: Icon-only buttons with sleek tooltips) */}
+                            <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                              <div className="inline-flex items-center justify-end gap-1.5">
+                                {/* View PDF Button */}
+                                <a
+                                  href={paper.file_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="View / Download PDF"
+                                  className="w-8 h-8 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition cursor-pointer flex items-center justify-center shadow-2xs hover:scale-105 active:scale-95"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </a>
+
+                                {/* Edit Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEdit(paper)}
+                                  title="Edit Paper Details"
+                                  className="w-8 h-8 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition cursor-pointer flex items-center justify-center shadow-2xs hover:scale-105 active:scale-95"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+
+                                {/* Delete Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePaper(paper)}
+                                  disabled={deletingId === paper.id}
+                                  title="Permanently Delete Paper"
+                                  className="w-8 h-8 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition cursor-pointer flex items-center justify-center disabled:opacity-50 shadow-2xs hover:scale-105 active:scale-95"
+                                >
+                                  {deletingId === paper.id ? (
+                                    <span className="w-3.5 h-3.5 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
               </div>
+
+              {/* Modern 20-per-page Pagination Footer */}
+              {filteredPapers.length > 0 && (
+                <div className="p-4 sm:p-5 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Showing <span className="font-bold text-slate-900 dark:text-white">{(tableCurrentPage - 1) * TABLE_PAGE_SIZE + 1}</span> to{" "}
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {Math.min(tableCurrentPage * TABLE_PAGE_SIZE, filteredPapers.length)}
+                    </span> of{" "}
+                    <span className="font-bold text-slate-900 dark:text-white">{filteredPapers.length}</span> papers
+                    {filteredPapers.length !== papers.length && (
+                      <span className="text-slate-400 ml-1">(filtered from {papers.length} total)</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {/* First Page */}
+                    <button
+                      type="button"
+                      onClick={() => setTableCurrentPage(1)}
+                      disabled={tableCurrentPage === 1}
+                      title="First Page"
+                      className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center justify-center text-xs font-bold"
+                    >
+                      «
+                    </button>
+
+                    {/* Prev Page */}
+                    <button
+                      type="button"
+                      onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={tableCurrentPage === 1}
+                      title="Previous Page"
+                      className="px-3 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center gap-1 text-xs font-bold"
+                    >
+                      ‹ Prev
+                    </button>
+
+                    {/* Page indicator */}
+                    <div className="px-3 h-8 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 font-black text-xs flex items-center justify-center">
+                      Page {tableCurrentPage} of {totalPages}
+                    </div>
+
+                    {/* Next Page */}
+                    <button
+                      type="button"
+                      onClick={() => setTableCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={tableCurrentPage === totalPages}
+                      title="Next Page"
+                      className="px-3 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center gap-1 text-xs font-bold"
+                    >
+                      Next ›
+                    </button>
+
+                    {/* Last Page */}
+                    <button
+                      type="button"
+                      onClick={() => setTableCurrentPage(totalPages)}
+                      disabled={tableCurrentPage === totalPages}
+                      title="Last Page"
+                      className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center justify-center text-xs font-bold"
+                    >
+                      »
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -2701,6 +3429,17 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                   }`}
                 >
                   Provincial Term Tests
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaperSubTab("other")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    paperSubTab === "other"
+                      ? "bg-blue-600 text-white shadow-xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  Other Papers
                 </button>
               </div>
             </div>
@@ -2799,7 +3538,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                       {passpaperLevel === "A/L" && (
                         <div className="animate-in fade-in zoom-in-95 duration-200">
                           <label className="block text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                            <span>A/L Stream (විෂය ධාරාව)</span>
+                            <span>A/L Stream</span>
                             <span className="text-red-500">*</span>
                           </label>
                           <PremiumSelect
@@ -2850,8 +3589,8 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                         <div className="flex items-center gap-3">
                           <span className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm font-bold">5</span>
                           <div>
-                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">විෂය: 5 ශ්‍රේණිය ශිෂ්‍යත්වය (Grade 5 Scholarship)</p>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400">ශිෂ්‍යත්ව විභාගය සඳහා වෙනම විෂයන් නොමැති බැවින් විෂය ස්වයංක්‍රීයව &apos;Scholarship&apos; ලෙස සටහන් වේ.</p>
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Subject: Grade 5 Scholarship</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Scholarship examination papers do not require separate subjects; subject is automatically set as &apos;Scholarship&apos;.</p>
                           </div>
                         </div>
                         <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">Auto Set</span>
@@ -2907,7 +3646,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                       {modelLevel === "A/L" && (
                         <div className="animate-in fade-in zoom-in-95 duration-200">
                           <label className="block text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                            <span>A/L Stream (විෂය ධාරාව)</span>
+                            <span>A/L Stream</span>
                             <span className="text-red-500">*</span>
                           </label>
                           <PremiumSelect
@@ -2958,8 +3697,8 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                         <div className="flex items-center gap-3">
                           <span className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm font-bold">5</span>
                           <div>
-                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">විෂය: 5 ශ්‍රේණිය ශිෂ්‍යත්වය (Grade 5 Scholarship)</p>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400">ශිෂ්‍යත්ව ආදර්ශ ප්‍රශ්න පත්‍ර සඳහා විෂය ස්වයංක්‍රීයව &apos;Scholarship&apos; ලෙස සටහන් වේ.</p>
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Subject: Grade 5 Scholarship</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Scholarship model papers do not require separate subjects; subject is automatically set as &apos;Scholarship&apos;.</p>
                           </div>
                         </div>
                         <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">Auto Set</span>
@@ -3074,7 +3813,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                       {provinceGrade.includes("A/L") && (
                         <div className="animate-in fade-in zoom-in-95 duration-200">
                           <label className="block text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                            <span>A/L Stream (විෂය ධාරාව)</span>
+                            <span>A/L Stream</span>
                             <span className="text-red-500">*</span>
                           </label>
                           <PremiumSelect
@@ -3104,28 +3843,153 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                   </div>
                 )}
 
-                {/* With Answers Toggle */}
-                {renderWithAnswersToggle()}
+                {/* SUB-TAB 4: OTHER PAPERS */}
+                {paperSubTab === "other" && (
+                  <div className="space-y-5 animate-in fade-in duration-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                      {/* Grade / Level */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                          Grade / Level <span className="text-red-500">*</span>
+                        </label>
+                        <PremiumSelect
+                          value={otherGrade}
+                          onChange={setOtherGrade}
+                          options={EDIT_GRADE_OPTIONS.map((g) => ({
+                            value: g,
+                            label: g,
+                            badge: g.includes("11") || g.includes("12") ? "Secondary" : "Grade",
+                          }))}
+                        />
+                      </div>
 
-                {/* Generated Title Preview */}
-                <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px] block">
-                      Generated Catalog Title
-                    </span>
-                    <span className="font-bold text-slate-900 dark:text-white">
+                      {/* Paper Type */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                          Paper Type <span className="text-red-500">*</span>
+                        </label>
+                        <PremiumSelect
+                          value={otherPaperType}
+                          onChange={setOtherPaperType}
+                          options={OTHER_PAPER_TYPES.map((t) => ({
+                            value: t,
+                            label: t,
+                            badge: "Type",
+                          }))}
+                        />
+                      </div>
+
+                      {/* Academic Year */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                          Academic Year <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          name="year"
+                          min="1990"
+                          max="2099"
+                          required
+                          value={formData.year}
+                          onChange={handleInputChange}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                        />
+                      </div>
+
+                      {/* Medium */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                          Medium <span className="text-red-500">*</span>
+                        </label>
+                        <PremiumSelect
+                          value={medium}
+                          onChange={setMedium}
+                          options={MEDIUMS.map((m) => ({
+                            value: m,
+                            label: m,
+                            badge: m.includes("Sinhala") ? "SM" : m.includes("English") ? "EM" : "TM",
+                          }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={`grid grid-cols-1 ${otherGrade.includes("A/L") ? "md:grid-cols-2" : "md:grid-cols-1"} gap-4`}>
+                      {/* A/L Stream for Other Papers */}
+                      {otherGrade.includes("A/L") && (
+                        <div className="animate-in fade-in zoom-in-95 duration-200">
+                          <label className="block text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <span>A/L Stream</span>
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <PremiumSelect
+                            value={alStream}
+                            onChange={setAlStream}
+                            options={AL_STREAMS}
+                          />
+                        </div>
+                      )}
+
+                      {/* Subject Input */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                          Subject Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="subject"
+                          required
+                          value={formData.subject}
+                          onChange={handleInputChange}
+                          placeholder="e.g. Science, Mathematics, History, ICT"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Generated Catalog Title Preview with Inline Answers Toggle */}
+                <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px] block">
+                        Generated Catalog Title
+                      </span>
+                      <span className="px-2 py-0.2 rounded-md text-[9.5px] font-black bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                        {getComputedCategory()}
+                      </span>
+                      {((paperSubTab === "passpaper" && passpaperLevel === "A/L") || (paperSubTab === "model" && modelLevel === "A/L") || (paperSubTab === "province" && provinceGrade.includes("A/L")) || (paperSubTab === "other" && otherGrade.includes("A/L"))) && (
+                        <span className="px-2 py-0.2 rounded-md text-[9.5px] font-black bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/80">
+                          Stream: {alStream}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-bold text-slate-900 dark:text-white truncate block">
                       {generatePaperTitle()}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {((paperSubTab === "passpaper" && passpaperLevel === "A/L") || (paperSubTab === "model" && modelLevel === "A/L") || (paperSubTab === "province" && provinceGrade.includes("A/L"))) && (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/80">
-                        Stream: {alStream}
-                      </span>
-                    )}
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                      Category: {getComputedCategory()}
+
+                  {/* Compact Answers Toggle */}
+                  <div className="shrink-0 flex items-center gap-2.5 sm:pl-3.5 sm:border-l border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Answers
                     </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={hasAnswers}
+                      onClick={() => setHasAnswers(!hasAnswers)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                        hasAnswers ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
+                      }`}
+                      title={hasAnswers ? "Answers included with this paper" : "No answers"}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
+                          hasAnswers ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
 
@@ -3222,14 +4086,14 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-lg font-black text-slate-900 dark:text-white">
-                    Registered Students (ලියාපදිංචි සිසුන්)
+                    Registered Students
                   </h1>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
                     {users.length}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  ප්‍රශ්න පත්‍ර නොමිලේ Download කිරීමට ලියාපදිංචි වූ සිසුන්ගේ නාමලේඛනය සහ දුරකථන අංක.
+                  Directory of registered students and verified WhatsApp contacts for 1-Click free downloads.
                 </p>
               </div>
 
@@ -3244,7 +4108,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                   type="text"
                   value={studentSearch}
                   onChange={(e) => setStudentSearch(e.target.value)}
-                  placeholder="ශිෂ්‍ය නම හෝ Phone අංකය..."
+                  placeholder="Search student name or phone..."
                   className="w-full pl-9 pr-8 py-2 text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
                 />
                 {studentSearch && (
@@ -3265,10 +4129,10 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                     <tr className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                      <th className="py-3.5 px-4 sm:px-6">ශිෂ්‍යයාගේ නම (Student Name)</th>
+                      <th className="py-3.5 px-4 sm:px-6">Student Name</th>
                       <th className="py-3.5 px-4 sm:px-6">WhatsApp / Phone Number</th>
-                      <th className="py-3.5 px-4 sm:px-6">ලියාපදිංචි දිනය (Registered Date)</th>
-                      <th className="py-3.5 px-4 sm:px-6 text-right">ක්‍රියාමාර්ග (Actions)</th>
+                      <th className="py-3.5 px-4 sm:px-6">Registered Date</th>
+                      <th className="py-3.5 px-4 sm:px-6 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
@@ -3277,18 +4141,18 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                         <td colSpan="4" className="py-12 text-center text-slate-400">
                           {studentSearch ? (
                             <div className="space-y-1">
-                              <p className="font-bold text-sm">සිසුන් හමු නොවීය</p>
-                              <p className="text-xs text-slate-500">"{studentSearch}" සෙවුමට ගැලපෙන නමක් හෝ අංකයක් නොමැත.</p>
+                              <p className="font-bold text-sm">No Students Found</p>
+                              <p className="text-xs text-slate-500">No student matches "{studentSearch}".</p>
                               <button
                                 type="button"
                                 onClick={() => setStudentSearch("")}
                                 className="mt-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs hover:underline cursor-pointer"
                               >
-                                සෙවුම ඉවත් කරන්න (Clear Search)
+                                Clear Search
                               </button>
                             </div>
                           ) : (
-                            <p>තවමත් ලියාපදිංචි වූ සිසුන් database එකෙහි නොමැත.</p>
+                            <p>No registered students found in database yet.</p>
                           )}
                         </td>
                       </tr>
@@ -3524,7 +4388,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                               <a
                                 href={`https://wa.me/${(req.whatsapp || "").replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
                                   req.status === "uploaded"
-                                    ? `හෙලෝ ${req.name || ""}, ඔබ DESH Digital Hub හරහා Request කළ ${req.year ? `${req.year} ` : ""}${req.subject || "ප්‍රශ්න පත්‍රය"} දැන් අපගේ වෙබ් අඩවියට Upload කර ඇත! Download කරගැනීමට පිවිසෙන්න: https://deshedubhub.com/`
+                                    ? `Hello ${req.name || ""}, your requested paper (${req.year ? `${req.year} ` : ""}${req.subject || "Paper"}) is now available on DESH Edu Hub! Visit to download: https://deshedubhub.com/`
                                     : `Hello ${req.name || ""}, regarding your request on DESH Edu Hub:`
                                 )}`}
                                 target="_blank"
@@ -3669,20 +4533,43 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
             )}
 
             <form onSubmit={handleSaveEdit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Paper Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editFormData.title}
-                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
-                />
+              <div className="flex items-end gap-3">
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Paper Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.title}
+                    onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                  />
+                </div>
+                <div className="shrink-0 flex flex-col items-center justify-end pb-0.5">
+                  <span className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                    Answers
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={editFormData.has_answers}
+                    onClick={() => setEditFormData({ ...editFormData, has_answers: !editFormData.has_answers })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                      editFormData.has_answers ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
+                    }`}
+                    title={editFormData.has_answers ? "Answers included" : "No answers"}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ${
+                        editFormData.has_answers ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Category <span className="text-red-500">*</span>
@@ -3690,10 +4577,28 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                   <PremiumSelect
                     value={editFormData.category}
                     onChange={(val) => setEditFormData({ ...editFormData, category: val })}
-                    options={CATEGORIES.map((c) => ({
-                      value: c,
-                      label: c,
-                      badge: c,
+                    options={[
+                      { value: "O/L", label: "G.C.E. O/L", badge: "O/L" },
+                      { value: "A/L", label: "G.C.E. A/L", badge: "A/L" },
+                      { value: "Grade 5", label: "Grade 5 Scholarship", badge: "Gr 5" },
+                      { value: "Provincial", label: "Provincial Term Tests", badge: "Prov" },
+                      { value: "Model", label: "Model Papers", badge: "Model" },
+                      { value: "Other", label: "Other Papers", badge: "Other" },
+                    ]}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Grade / Level
+                  </label>
+                  <PremiumSelect
+                    value={editFormData.grade || "None / General"}
+                    onChange={(val) => setEditFormData({ ...editFormData, grade: val })}
+                    options={EDIT_GRADE_OPTIONS.map((g) => ({
+                      value: g,
+                      label: g,
+                      badge: g === "None / General" ? "Auto" : g,
                     }))}
                   />
                 </div>
@@ -3717,7 +4622,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
               {editFormData.category === "A/L" && (
                 <div className="animate-in fade-in zoom-in-95 duration-200">
                   <label className="block text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <span>A/L Stream (විෂය ධාරාව)</span>
+                    <span>A/L Stream</span>
                   </label>
                   <PremiumSelect
                     value={editFormData.stream || "Physical Science"}
@@ -3738,32 +4643,6 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
                   onChange={(e) => setEditFormData({ ...editFormData, subject: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
                 />
-              </div>
-
-              <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 flex items-center justify-between">
-                <div>
-                  <span className="block text-xs font-bold text-slate-900 dark:text-white">
-                    With Answers / Marking Scheme
-                  </span>
-                  <span className="block text-[11px] text-slate-500 mt-0.5">
-                    {editFormData.has_answers ? "Active answers badge." : "No answers attached."}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={editFormData.has_answers}
-                  onClick={() => setEditFormData({ ...editFormData, has_answers: !editFormData.has_answers })}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                    editFormData.has_answers ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ${
-                      editFormData.has_answers ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
               </div>
 
               <div className="text-xs text-slate-500 flex items-center justify-between pt-1">
@@ -3876,7 +4755,7 @@ export default function AdminDashboard({ initialPapers = [], initialUsers = [], 
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Site visit data දිනපතා Supabase Cloud Database එකෙහි ස්ථිරව ගබඩා කිරීම සඳහා පහත SQL විධානය Supabase SQL Editor එකෙහි Run කරන්න:
+              To store site visit data permanently in your Supabase Cloud Database, run the following SQL command in your Supabase SQL Editor:
             </p>
 
             <div className="relative">

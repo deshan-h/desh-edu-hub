@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
 
 export default function AdminLogin() {
   const [username, setUsername] = useState("");
@@ -46,22 +45,21 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-between text-slate-800 dark:text-slate-100 transition-colors duration-300">
+    <div className="dark min-h-screen bg-[#07090E] flex flex-col justify-between text-slate-100 selection:bg-blue-600/30">
       {/* Top Bar */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex items-center justify-between">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-cyan-400 transition"
         >
           <span>←</span>
-          <span>මුල් පිටුවට (Back to Home)</span>
+          <span>Back to Home</span>
         </Link>
-        <ThemeToggle />
       </div>
 
       {/* Main Login Card */}
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800/80 p-8 transition-colors duration-300">
+        <div className="w-full max-w-md bg-slate-900/90 rounded-3xl shadow-2xl border border-slate-800 p-8 backdrop-blur-xl">
           {/* Logo & Header */}
           <div className="text-center mb-8">
             <div className="relative h-16 w-16 mx-auto mb-4 rounded-2xl overflow-hidden shadow-md border border-slate-100 dark:border-slate-800 flex items-center justify-center">

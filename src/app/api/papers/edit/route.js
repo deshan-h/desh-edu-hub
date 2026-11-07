@@ -17,7 +17,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { id, title, category, subject, year, stream, has_answers } = body;
+    const { id, title, category, subject, year, stream, grade, has_answers } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -60,6 +60,7 @@ export async function POST(request) {
       year: parseInt(year.toString(), 10),
       has_answers: has_answers === true,
       ...(stream !== undefined ? { stream: stream ? stream.toString().trim() : null } : {}),
+      ...(grade !== undefined ? { grade: grade && grade !== "None / General" ? grade.toString().trim() : null } : {}),
     };
 
     let { data, error: dbError } = await supabase
@@ -69,15 +70,17 @@ export async function POST(request) {
       .select()
       .single();
 
-    // Gracefully handle if 'has_answers' column doesn't exist yet in Supabase
+    // Gracefully handle if optional columns ('has_answers', 'stream', 'grade') don't exist yet in Supabase
     if (
       dbError &&
       (dbError.message?.includes("has_answers") ||
         dbError.message?.includes("stream") ||
+        dbError.message?.includes("grade") ||
         dbError.code === "PGRST204" ||
         dbError.code === "42703")
     ) {
-      console.warn("Column has_answers missing in Supabase, retrying without column...");
+      console.warn("Optional column missing in Supabase, retrying without optional columns...", dbError.message);
+      delete updatePayload.grade;
       delete updatePayload.has_answers;
       delete updatePayload.stream;
 
